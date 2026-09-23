@@ -1,8 +1,8 @@
-# AI App Tester Prototype 🤖
+# AI App Tester 🤖
 
 A lightweight, deterministic AI App Tester prototype in Python designed for technical presentations and forward-deployed engineering workflows.
 
-The tool inspects a live web application, extracts a sanitized, token-efficient representation of interactive DOM elements, uses an LLM with strict structured outputs to generate boundary test cases and UX/accessibility audits, executes the tests deterministically via headless Playwright, and exports a dual-bucket developer report.
+The tool inspects any live web application (or the included seeded demo app), extracts a sanitized, token-efficient representation of interactive DOM elements, uses an LLM with strict structured outputs to generate boundary test cases and UX/accessibility audits, executes the tests deterministically via headless Playwright, and renders an interactive dashboard partitioned into **Hard Bugs vs. UX Improvements**.
 
 ---
 
@@ -10,6 +10,11 @@ The tool inspects a live web application, extracts a sanitized, token-efficient 
 
 ```text
 ai-app-tester/
+├── gui/
+│   ├── index.html       # Modern dark mode dashboard with live audit controls
+│   ├── style.css        # Responsive glassmorphism styles & status cards
+│   └── app.js           # Frontend controller & dynamic report renderer
+├── server.py            # Local REST API server & static GUI server (127.0.0.1)
 ├── target-app/
 │   ├── index.html       # Standalone demo app seeded with intentional bugs
 │   └── app.js           # Client-side logic with uncaught exceptions & broken API calls
@@ -21,7 +26,7 @@ ai-app-tester/
 │   ├── llm.py           # LLM reasoning layer (OpenAI structured outputs + fallback rule engine)
 │   ├── runner.py        # Fuzz execution engine with Strict Verification Gate
 │   └── reporter.py      # Dual-bucket HTML and terminal reporting layer
-├── main.py              # Single CLI entry point
+├── main.py              # Unified entry point (Launches Web GUI or CLI)
 ├── requirements.txt     # Python dependencies
 └── README.md            # Architecture notes & setup instructions
 ```
@@ -40,8 +45,9 @@ ai-app-tester/
    - Instead of feeding massive raw DOM trees or screenshots to the LLM, `tester/browser.py` extracts a pruned, sanitized JSON representation of only interactive nodes (`<input>`, `<button>`, `<a>`, `<select>`, `<form>`, and unlabelled `<img>`).
    - Keeps LLM prompt tokens under 500, minimizing latency and API costs.
 
-3. **Guaranteed Demo Stability (Zero Crash Fallback)**:
-   - If `OPENAI_API_KEY` is not present or an API network blip occurs, `tester/llm.py` automatically falls back to an integrated deterministic rule-based generator, guaranteeing the presentation never halts or fails.
+3. **Guaranteed Presentation Stability (Offline & Zero-Crash Fallback)**:
+   - The GUI server binds explicitly to loopback `127.0.0.1`, guaranteeing 100% functionality without relying on conference Wi-Fi or router DNS.
+   - If `OPENAI_API_KEY` is not present or network drops, `tester/llm.py` automatically activates its deterministic rule engine within milliseconds.
 
 4. **Actionable Dual-Bucket Reporting**:
    - **🔴 Hard Bugs**: Concrete runtime crashes and 4xx/5xx failures with exact reproduction steps, selectors, and error stack traces.
@@ -67,14 +73,19 @@ OPENAI_MODEL="gpt-4o-mini"
 ```
 *(If no API key is provided, the tool automatically uses its deterministic rule engine).*
 
-### 3. Run the Tester
-Execute against the included target demo application:
+### 3. Launch the Web GUI Dashboard
+Start the application:
 ```bash
 python main.py
 ```
-Or test against an external URL:
-```bash
-python main.py --url https://example.com --output report.html
-```
+This automatically spins up the GUI server at **`http://127.0.0.1:5050`** and opens your default browser.
+- Select the **🎯 Seeded Demo App** preset chip or enter any custom URL.
+- Click **⚡ Run AI Audit** to watch the real-time execution stepper and inspect the live findings.
 
-When finished, review the terminal output and open `report.html` in your browser.
+### 4. Optional: CLI Mode
+To run audits directly from the command line without the GUI:
+```bash
+python main.py --cli --url http://127.0.0.1:8000
+# Or against any arbitrary website:
+python main.py --cli --url https://news.ycombinator.com
+```
