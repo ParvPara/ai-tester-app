@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI App Tester - Autonomous Web QA & Fuzzing Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Top Navigation -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-icon">🤖</div>
+                <div class="brand-info">
+                    <h1>AI App Tester</h1>
+                    <span class="tagline">Autonomous Deterministic QA & Fuzzing</span>
+                </div>
+            </div>
+            <div class="system-status">
+                <span class="status-dot"></span>
+                <span class="status-label">Loopback Active (127.0.0.1)</span>
+                <span class="pill offline-pill">Offline Safe</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-container">
+            <!-- URL Input & Control Panel -->
+            <section class="panel control-panel">
+                <div class="panel-header">
+                    <h2>Target Application</h2>
+                    <p class="subtitle">Enter any local or web URL to run an automated boundary test and UX audit.</p>
+                </div>
+                
+                <form id="audit-form" class="url-form">
+                    <div class="input-group">
+                        <span class="input-icon">🔗</span>
+                        <input type="text" id="target-url-input" placeholder="e.g. http://127.0.0.1:8000 or https://example.com" value="http://127.0.0.1:8000" required>
+                        <button type="submit" id="start-audit-btn" class="btn-primary">
+                            <span class="btn-text">Run AI Audit</span>
+                            <span class="btn-icon">⚡</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Preset Quick Buttons -->
+                <div class="preset-row">
+                    <span class="preset-label">Quick Presets:</span>
+                    <button type="button" class="preset-chip active" data-url="http://127.0.0.1:8000">🎯 Seeded Demo App</button>
+                    <button type="button" class="preset-chip" data-url="https://example.com">🌐 Example.com</button>
+                    <button type="button" class="preset-chip" data-url="https://news.ycombinator.com">📰 Hacker News</button>
+                </div>
+            </section>
+
+            <!-- Progress / Loading Stepper Card -->
+            <section id="progress-section" class="panel progress-panel hidden">
+                <div class="stepper-header">
+                    <div class="spinner"></div>
+                    <div>
+                        <h3 id="progress-title">Running Deterministic AI Audit...</h3>
+                        <p id="progress-sub" class="subtitle">Inspecting DOM elements and attaching telemetry listeners</p>
+                    </div>
+                </div>
+                <div class="step-indicators">
+                    <div class="step active" id="step-1">
+                        <div class="step-num">1</div>
+                        <div class="step-text">DOM Pruning & Extraction</div>
+                    </div>
+                    <div class="step-divider"></div>
+                    <div class="step" id="step-2">
+                        <div class="step-num">2</div>
+                        <div class="step-text">LLM Edge-Case Reasoning</div>
+                    </div>
+                    <div class="step-divider"></div>
+                    <div class="step" id="step-3">
+                        <div class="step-num">3</div>
+                        <div class="step-text">Playwright Fuzz Execution</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="hidden">
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Execution Time</div>
+                        <div class="metric-value accent" id="metric-time">0.00s</div>
+                        <div class="metric-sub">Target &lt; 30.0s</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Hard Bugs Verified</div>
+                        <div class="metric-value danger" id="metric-bugs">0</div>
+                        <div class="metric-sub">Strict Verification Gate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">UX Flaws Detected</div>
+                        <div class="metric-value warning" id="metric-ux">0</div>
+                        <div class="metric-sub">Accessibility & Semantics</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Interactive Elements</div>
+                        <div class="metric-value success" id="metric-elements">0</div>
+                        <div class="metric-sub">&lt; 500 Tokens Evaluated</div>
+                    </div>
+                </div>
+
+                <!-- Dual-Bucket Tabs -->
+                <div class="panel results-panel">
+                    <div class="tab-bar">
+                        <button class="tab-btn active" data-tab="hard-bugs">
+                            🔴 Hard Bugs <span class="tab-count" id="count-bugs">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="ux-improvements">
+                            🟡 UX & Accessibility <span class="tab-count" id="count-ux">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="raw-json">
+                            📄 Raw JSON
+                        </button>
+                    </div>
+
+                    <!-- Tab Content: Hard Bugs -->
+                    <div id="tab-hard-bugs" class="tab-pane active">
+                        <div id="hard-bugs-list" class="cards-list"></div>
+                    </div>
+
+                    <!-- Tab Content: UX Improvements -->
+                    <div id="tab-ux-improvements" class="tab-pane hidden">
+                        <div id="ux-improvements-list" class="cards-list"></div>
+                    </div>
+
+                    <!-- Tab Content: Raw JSON -->
+                    <div id="tab-raw-json" class="tab-pane hidden">
+                        <pre id="raw-json-output" class="code-box"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
