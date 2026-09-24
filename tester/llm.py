@@ -9,9 +9,13 @@ Your task is to analyze a sanitized DOM tree of an application and generate:
 1. Targeted boundary/edge-case fuzz actions (`fuzz_actions`) to probe for runtime JavaScript crashes, validation bugs, or network errors (e.g., negative numbers, zero, empty input submit, special characters, injection strings, clicking action buttons).
 2. Semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure (e.g., inputs missing <label> or aria-label, images missing alt text, buttons lacking clear affordance, missing guidance).
 
-For every UX/accessibility improvement, you MUST explicitly provide the `impact_rationale` explaining:
-- Why this issue matters to the end user.
-- What specific confusion, hesitation, or barrier it creates (e.g., "Screen reader users will not know what to input", "Users may be confused about how to submit the form without a clear call-to-action button", "Users are unsure if discount codes are case-sensitive").
+For every test action and UX finding, communicate clearly for BOTH engineers and non-technical stakeholders (Product Managers, Founders):
+- For `fuzz_actions`:
+  * `rationale`: What is being tested and why.
+  * `user_scenario`: What a real human user would do to trigger this (e.g., "A shopper accidentally enters -1 or clears the input box before clicking Place Order").
+  * `business_impact`: What happens to the customer and business if it breaks (e.g., "The checkout freezes completely, leaving the customer stranded and unable to pay, causing direct lost sales").
+- For `ux_improvements`:
+  * `impact_rationale`: What specific user confusion, friction, or accessibility barrier it causes (e.g., "Visually impaired customers using screen readers cannot tell what data is required").
 
 You MUST output ONLY a valid JSON object matching this exact structure:
 {
@@ -20,7 +24,9 @@ You MUST output ONLY a valid JSON object matching this exact structure:
       "selector": "#element-id",
       "action_type": "fill" or "click",
       "payload": "fuzz-string-or-number",
-      "rationale": "Reason for testing this boundary"
+      "rationale": "Testing intent in plain English",
+      "user_scenario": "How a real user triggers this scenario",
+      "business_impact": "How this bug harms the user or business if it crashes"
     }
   ],
   "ux_improvements": [
@@ -54,14 +60,18 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                     selector=selector,
                     action_type="fill",
                     payload="-5",
-                    rationale="Test boundary condition with negative integer quantity input"
+                    rationale="Test boundary condition with negative integer quantity input",
+                    user_scenario="A customer makes a typo or tries to remove items by typing -5 instead of using a delete button",
+                    business_impact="The checkout crashes on an unhandled tax calculation error, preventing the order from going through and losing the sale"
                 ))
             elif item.get("type") == "text" or "promo" in (elem_id or ""):
                 fuzz_actions.append(FuzzAction(
                     selector=selector,
                     action_type="fill",
                     payload="INVALID_PROMO_999",
-                    rationale="Test non-existent promo code to probe API response handling"
+                    rationale="Test non-existent promo code to probe API response handling",
+                    user_scenario="A shopper copies and pastes an expired or mistyped discount code found on social media",
+                    business_impact="The promo lookup triggers a failed network call; if not handled, the customer sees an error and abandons their cart"
                 ))
             
             # UX Flaw check: missing associated label
@@ -81,14 +91,18 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                     selector=selector if tag == "button" else "#submit-order-btn",
                     action_type="click",
                     payload="",
-                    rationale="Click submit button to test form submission with current input values"
+                    rationale="Click submit button to test form submission with current input values",
+                    user_scenario="A customer rushes through checkout and clicks 'Place Order' before completing required fields",
+                    business_impact="The app crashes with an uncaught runtime error rather than showing a friendly validation notice"
                 ))
             else:
                 fuzz_actions.append(FuzzAction(
                     selector=selector,
                     action_type="click",
                     payload="",
-                    rationale="Trigger secondary action button to verify client network calls"
+                    rationale="Trigger secondary action button to verify client network calls",
+                    user_scenario="A shopper clicks an optional button to check live rates or apply a promotion",
+                    business_impact="If the background API fails, the user is left waiting or confused by an unhandled service error"
                 ))
 
         elif tag == "img":
@@ -107,7 +121,9 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
             selector="#submit-order-btn",
             action_type="click",
             payload="",
-            rationale="Submit empty form to check client-side boundary validation"
+            rationale="Submit empty form to check client-side boundary validation",
+            user_scenario="A shopper clicks Place Order without filling in their details",
+            business_impact="The app crashes instead of gently highlighting missing fields"
         ))
 
     return AuditResponse(fuzz_actions=fuzz_actions, ux_improvements=ux_improvements)
