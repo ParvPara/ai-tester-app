@@ -4,10 +4,14 @@ from openai import OpenAI
 from tester.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_PROVIDER
 from tester.schema import AuditResponse, FuzzAction, UXImprovement
 
-SYSTEM_PROMPT = """You are an expert QA Automation and Accessibility Auditor.
+SYSTEM_PROMPT = """You are an expert QA Automation, UX Design, and Accessibility Auditor.
 Your task is to analyze a sanitized DOM tree of an application and generate:
-1. Targeted boundary/edge-case fuzz actions (`fuzz_actions`) to probe for runtime JavaScript crashes, validation bugs, or network errors (e.g., negative numbers, zero, empty input submit, special characters, clicking action buttons).
-2. Semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure (e.g., inputs missing <label> or aria-label, images missing alt text, unlabelled buttons).
+1. Targeted boundary/edge-case fuzz actions (`fuzz_actions`) to probe for runtime JavaScript crashes, validation bugs, or network errors (e.g., negative numbers, zero, empty input submit, special characters, injection strings, clicking action buttons).
+2. Semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure (e.g., inputs missing <label> or aria-label, images missing alt text, buttons lacking clear affordance, missing guidance).
+
+For every UX/accessibility improvement, you MUST explicitly provide the `impact_rationale` explaining:
+- Why this issue matters to the end user.
+- What specific confusion, hesitation, or barrier it creates (e.g., "Screen reader users will not know what to input", "Users may be confused about how to submit the form without a clear call-to-action button", "Users are unsure if discount codes are case-sensitive").
 
 You MUST output ONLY a valid JSON object matching this exact structure:
 {
@@ -24,7 +28,8 @@ You MUST output ONLY a valid JSON object matching this exact structure:
       "category": "Accessibility" or "Layout" or "Usability" or "Copywriting",
       "selector": "#element-id",
       "issue": "Concise issue description",
-      "suggested_fix": "Clear developer remediation"
+      "impact_rationale": "Why this matters: user confusion, friction, or accessibility barrier caused by this defect",
+      "suggested_fix": "Clear developer remediation or drop-in code snippet"
     }
   ]
 }
@@ -65,7 +70,8 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                     category="Accessibility",
                     selector=selector,
                     issue="Input field lacks an associated <label> element or 'aria-label' attribute.",
-                    suggested_fix=f"Add <label for=\"{elem_id or 'input-id'}\">Label Name</label> or aria-label to support screen readers."
+                    impact_rationale="Screen readers cannot announce what this input field is for, leaving visually impaired users unable to understand what data to enter and likely causing form abandonment.",
+                    suggested_fix=f"Add <label for=\"{elem_id or 'input-id'}\">Label Name</label> or aria-label to support assistive technology."
                 ))
 
         elif tag == "button" or tag == "form":
@@ -91,7 +97,8 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                     category="Accessibility",
                     selector=selector,
                     issue="Image element is missing an 'alt' text description attribute.",
-                    suggested_fix="Add descriptive alt=\"Header logo\" attribute for accessibility compliance."
+                    impact_rationale="Assistive screen readers will announce confusing raw file paths instead of describing the image, creating cognitive friction for visually impaired users.",
+                    suggested_fix="Add descriptive alt=\"Header logo\" attribute, or alt=\"\" if decorative."
                 ))
 
     # Add empty submit fuzz action if not present
