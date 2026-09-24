@@ -1,7 +1,7 @@
 import json
 from typing import List, Dict, Any
 from openai import OpenAI
-from tester.config import OPENAI_API_KEY, LLM_MODEL
+from tester.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_PROVIDER
 from tester.schema import AuditResponse, FuzzAction, UXImprovement
 
 SYSTEM_PROMPT = """You are an expert QA Automation and Accessibility Auditor.
@@ -9,12 +9,30 @@ Your task is to analyze a sanitized DOM tree of an application and generate:
 1. Targeted boundary/edge-case fuzz actions (`fuzz_actions`) to probe for runtime JavaScript crashes, validation bugs, or network errors (e.g., negative numbers, zero, empty input submit, special characters, clicking action buttons).
 2. Semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure (e.g., inputs missing <label> or aria-label, images missing alt text, unlabelled buttons).
 
-Be concise, precise, and output valid structured data according to the schema.
+You MUST output ONLY a valid JSON object matching this exact structure:
+{
+  "fuzz_actions": [
+    {
+      "selector": "#element-id",
+      "action_type": "fill" or "click",
+      "payload": "fuzz-string-or-number",
+      "rationale": "Reason for testing this boundary"
+    }
+  ],
+  "ux_improvements": [
+    {
+      "category": "Accessibility" or "Layout" or "Usability" or "Copywriting",
+      "selector": "#element-id",
+      "issue": "Concise issue description",
+      "suggested_fix": "Clear developer remediation"
+    }
+  ]
+}
 """
 
 def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse:
     """
-    Fallback rule-based audit generator to ensure zero demo crashes if OpenAI API key is absent or unreachable.
+    Fallback rule-based audit generator to ensure zero demo crashes if API key is absent or unreachable.
     """
     fuzz_actions: List[FuzzAction] = []
     ux_improvements: List[UXImprovement] = []
@@ -90,27 +108,48 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
 
 def analyze_dom_with_llm(dom_elements: List[Dict[str, Any]]) -> AuditResponse:
     """
-    Sends the extracted DOM representation to OpenAI structured outputs API.
-    Falls back to deterministic rule generator if API key is not configured.
+    Sends extracted DOM representation to LLM reasoning engine (Groq LPU or OpenAI).
+    Falls back to deterministic rule engine if API key is absent or network fails.
     """
-    if not OPENAI_API_KEY:
-        print("[Notice] OPENAI_API_KEY not found in environment. Using deterministic rule engine fallback.")
+    if not LLM_API_KEY:
+        print("[Notice] No LLM API key detected. Using deterministic rule engine fallback.")
         return generate_fallback_audit(dom_elements)
 
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        print(f"[AI Engine] Reasoning via {LLM_PROVIDER.upper()} ({LLM_MODEL})...")
+        
+        client = OpenAI(
+            api_key=LLM_API_KEY,
+            base_url=LLM_BASE_URL
+        )
         user_content = f"Extracted DOM Interactive Elements:\n{json.dumps(dom_elements, indent=2)}"
 
-        response = client.beta.chat.completions.parse(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_content}
-            ],
-            response_format=AuditResponse,
-            temperature=0.0
-        )
-        return response.choices[0].message.parsed
+        if LLM_PROVIDER == "openai" and LLM_BASE_URL is None:
+            # Native OpenAI structured outputs
+            response = client.beta.chat.completions.parse(
+                model=LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content}
+                ],
+                response_format=AuditResponse,
+                temperature=0.0
+            )
+            return response.choices[0].message.parsed
+        else:
+            # Groq / OpenAI-compatible JSON mode
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.0
+            )
+            raw_json = response.choices[0].message.content
+            return AuditResponse.model_validate_json(raw_json)
+
     except Exception as err:
-        print(f"[Warning] OpenAI API call failed ({err}). Falling back to deterministic rule engine.")
+        print(f"[Warning] {LLM_PROVIDER.upper()} API call failed ({err}). Falling back to deterministic rule engine.")
         return generate_fallback_audit(dom_elements)
