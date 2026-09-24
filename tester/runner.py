@@ -84,6 +84,9 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
                         action_type=action.action_type,
                         payload=action.payload,
                         error_message=err_msg,
+                        test_intent=action.rationale or "Testing boundary conditions on form controls",
+                        user_scenario=action.user_scenario or "An end user inputs unexpected data or clicks before completing all fields",
+                        business_impact=action.business_impact or "The application crashes with an unhandled error, leaving the customer stranded and unable to proceed",
                         reproduction_steps=repro_steps
                     ))
 
@@ -105,6 +108,9 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
                         payload=action.payload,
                         error_message=f"Request to {err_url} failed with {net_err['status']} {net_err['status_text']}",
                         status_code=net_err['status'],
+                        test_intent=action.rationale or "Testing backend API endpoint response handling",
+                        user_scenario=action.user_scenario or "An end user interacts with a feature that triggers an external API call",
+                        business_impact=action.business_impact or "The feature fails silently or displays a broken network message, causing customer frustration",
                         reproduction_steps=repro_steps
                     ))
 
