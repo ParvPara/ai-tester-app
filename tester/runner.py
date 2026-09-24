@@ -1,8 +1,20 @@
+import urllib.parse
 from typing import List, Tuple
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
 from tester.config import HEADLESS, BROWSER_TIMEOUT_MS
 from tester.schema import AuditResponse, HardBug, UXImprovement
 from tester.browser import BrowserTelemetry
+
+# Common 3rd party analytics/tracker domains to ignore for zero false-positive hard bugs
+TRACKER_IGNORE_DOMAINS = (
+    "google-analytics.com",
+    "googletagmanager.com",
+    "facebook.net",
+    "doubleclick.net",
+    "clarity.ms",
+    "hotjar.com",
+    "datadoghq.com"
+)
 
 def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[HardBug], List[UXImprovement]]:
     """
@@ -11,19 +23,23 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
     if Playwright actively captures an uncaught JS exception (pageerror) or an HTTP >= 400 network failure.
     """
     hard_bugs: List[HardBug] = []
+    target_netloc = urllib.parse.urlparse(target_url).netloc
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=HEADLESS)
-        context = browser.new_context()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
         page = context.new_page()
 
         telemetry = BrowserTelemetry()
         page.on("pageerror", telemetry._on_page_error)
         page.on("response", telemetry._on_response)
 
-        # Initial navigation
+        # Initial navigation with domcontentloaded for high compatibility
         try:
-            page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="networkidle")
+            page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
+            page.wait_for_timeout(600)
         except Exception as err:
             hard_bugs.append(HardBug(
                 title="Target Application Unreachable",
@@ -51,10 +67,10 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
                     page.click(action.selector, timeout=2000)
 
                 # Small delay to allow async handlers/network requests to trigger
-                page.wait_for_timeout(300)
+                page.wait_for_timeout(400)
 
-            except PlaywrightError as pw_err:
-                # Execution error (e.g. element not interactable or missing)
+            except PlaywrightError:
+                # Element not interactable or off-screen, continue gracefully
                 pass
 
             # --- STRICT VERIFICATION GATE ---
@@ -74,13 +90,20 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
             # 2. HTTP Network Failure (4xx/5xx) Gate
             if telemetry.network_errors:
                 for net_err in telemetry.network_errors:
+                    err_url = net_err['url']
+                    err_netloc = urllib.parse.urlparse(err_url).netloc
+                    
+                    # Filter out third-party advertising/tracking noise
+                    if any(tracker in err_netloc for tracker in TRACKER_IGNORE_DOMAINS):
+                        continue
+
                     hard_bugs.append(HardBug(
                         title=f"Failed Network Request (HTTP {net_err['status']})",
                         severity="High",
                         selector=action.selector,
                         action_type=action.action_type,
                         payload=action.payload,
-                        error_message=f"Request to {net_err['url']} failed with {net_err['status']} {net_err['status_text']}",
+                        error_message=f"Request to {err_url} failed with {net_err['status']} {net_err['status_text']}",
                         status_code=net_err['status'],
                         reproduction_steps=repro_steps
                     ))
