@@ -36,6 +36,8 @@ def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImp
         for i, ux in enumerate(ux_improvements, start=1):
             print(f"  [{i}] [{ux.category}] Target: {ux.selector}")
             print(f"      Issue Description: {ux.issue}")
+            if ux.impact_rationale:
+                print(f"      User Impact / Why: {ux.impact_rationale}")
             print(f"      Suggested Fix    : {ux.suggested_fix}")
             print()
     print("="*70 + "\n")
@@ -74,6 +76,7 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
         ux_html = "<div class='empty-state'>✨ Zero UX / Accessibility Issues Detected</div>"
     else:
         for ux in ux_improvements:
+            impact_html = f"<p style='color: #fde68a; margin: 0.5rem 0;'><strong>⚠️ User Impact & Rationale:</strong> {ux.impact_rationale}</p>" if ux.impact_rationale else ""
             ux_html += f"""
             <div class="card ux-card">
                 <div class="card-header">
@@ -82,6 +85,7 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
                 </div>
                 <div class="card-body">
                     <p><strong>Issue:</strong> {ux.issue}</p>
+                    {impact_html}
                     <div class="fix-box">
                         <strong>Suggested Fix:</strong> {ux.suggested_fix}
                     </div>
