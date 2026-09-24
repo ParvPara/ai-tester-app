@@ -6,7 +6,9 @@ class FuzzAction(BaseModel):
     selector: str = Field(description="CSS selector targeting the element (e.g., '#item-quantity', '#submit-order-btn').")
     action_type: Literal["fill", "click"] = Field(description="Action to perform: 'fill' for inputs, 'click' for buttons/links.")
     payload: Optional[str] = Field(default="", description="Input string payload for 'fill' action (e.g., '-10', '', '99999999').")
-    rationale: str = Field(description="Rationale explaining the edge case or boundary condition being tested.")
+    rationale: str = Field(description="Plain English explanation of what is being tested and why.")
+    user_scenario: str = Field(default="", description="Plain English scenario of what a real human user would do to trigger this condition.")
+    business_impact: str = Field(default="", description="Plain English explanation of how this bug hurts the user experience or business (e.g. checkout freeze, lost sale).")
 
 class UXImprovement(BaseModel):
     """Represents a semantic, accessibility, or layout flaw detected in the DOM structure."""
@@ -30,4 +32,7 @@ class HardBug(BaseModel):
     payload: Optional[str] = None
     error_message: str
     status_code: Optional[int] = None
+    test_intent: str = Field(default="", description="Plain English explanation of why this test was run.")
+    user_scenario: str = Field(default="", description="Plain English real-world user scenario that causes this defect.")
+    business_impact: str = Field(default="", description="Plain English customer and business consequence if left unfixed.")
     reproduction_steps: List[str]
