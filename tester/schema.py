@@ -13,6 +13,7 @@ class UXImprovement(BaseModel):
     category: Literal["Accessibility", "Layout", "Usability", "Copywriting"] = Field(description="Category of the UX issue.")
     selector: str = Field(description="CSS selector of the affected element or container.")
     issue: str = Field(description="Clear description of the accessibility or UX design defect.")
+    impact_rationale: str = Field(default="", description="Explanation of why this issue matters and the negative user impact, friction, or confusion it causes.")
     suggested_fix: str = Field(description="Concrete developer recommendation or code fix to resolve the issue.")
 
 class AuditResponse(BaseModel):
