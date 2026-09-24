@@ -155,7 +155,21 @@ def analyze_dom_with_llm(dom_elements: List[Dict[str, Any]]) -> AuditResponse:
                 temperature=0.0
             )
             raw_json = response.choices[0].message.content
-            return AuditResponse.model_validate_json(raw_json)
+            parsed_data = json.loads(raw_json)
+            
+            # Normalize possible synonym keys
+            if "ux_improvements" not in parsed_data:
+                for syn in ["ux_issues", "improvements", "accessibility_improvements", "accessibility_flaws", "ux"]:
+                    if syn in parsed_data:
+                        parsed_data["ux_improvements"] = parsed_data.pop(syn)
+                        break
+            if "fuzz_actions" not in parsed_data:
+                for syn in ["tests", "test_cases", "actions", "boundary_actions"]:
+                    if syn in parsed_data:
+                        parsed_data["fuzz_actions"] = parsed_data.pop(syn)
+                        break
+
+            return AuditResponse.model_validate(parsed_data)
 
     except Exception as err:
         print(f"[Warning] {LLM_PROVIDER.upper()} API call failed ({err}). Falling back to deterministic rule engine.")

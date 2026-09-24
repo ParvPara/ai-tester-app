@@ -18,8 +18,8 @@ class UXImprovement(BaseModel):
 
 class AuditResponse(BaseModel):
     """Structured output expected from the LLM reasoning layer."""
-    fuzz_actions: List[FuzzAction] = Field(description="List of targeted boundary test cases to execute.")
-    ux_improvements: List[UXImprovement] = Field(description="List of detected UX and accessibility improvements.")
+    fuzz_actions: List[FuzzAction] = Field(default_factory=list, description="List of targeted boundary test cases to execute.")
+    ux_improvements: List[UXImprovement] = Field(default_factory=list, description="List of detected UX and accessibility improvements.")
 
 class HardBug(BaseModel):
     """Deterministic hard bug elevated strictly when Playwright intercepts a runtime error or 4xx/5xx response."""
