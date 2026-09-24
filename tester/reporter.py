@@ -19,6 +19,12 @@ def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImp
     else:
         for i, bug in enumerate(hard_bugs, start=1):
             print(f"  [{i}] [{bug.severity.upper()}] {bug.title}")
+            if bug.test_intent:
+                print(f"      🎯 Test Intent    : {bug.test_intent}")
+            if bug.user_scenario:
+                print(f"      👤 User Scenario  : {bug.user_scenario}")
+            if bug.business_impact:
+                print(f"      📉 Business Impact: {bug.business_impact}")
             print(f"      Target Selector : {bug.selector}")
             print(f"      Action / Payload: {bug.action_type} -> '{bug.payload or ''}'")
             print(f"      Error Details   : {bug.error_message}")
@@ -54,6 +60,10 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
     else:
         for b in hard_bugs:
             steps_html = "".join([f"<li>{step}</li>" for step in b.reproduction_steps])
+            intent_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>🎯 TEST INTENT</span> <span style='font-size: 0.9rem; color: #e2e8f0;'>{b.test_intent}</span></div>" if b.test_intent else ""
+            scenario_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(148,163,184,0.15); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>👤 USER SCENARIO</span> <span style='font-size: 0.9rem; color: #cbd5e1;'>{b.user_scenario}</span></div>" if b.user_scenario else ""
+            impact_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(239,68,68,0.15); color: #fca5a5; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>📉 BUSINESS IMPACT</span> <span style='font-size: 0.9rem; color: #fca5a5;'>{b.business_impact}</span></div>" if b.business_impact else ""
+            
             hard_bugs_html += f"""
             <div class="card bug-card">
                 <div class="card-header">
@@ -61,11 +71,15 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
                     <h3 class="card-title">{b.title}</h3>
                 </div>
                 <div class="card-body">
-                    <p><strong>Target Selector:</strong> <code>{b.selector}</code></p>
-                    <p><strong>Action Type:</strong> <code>{b.action_type}</code> (Payload: <code>"{b.payload or ''}"</code>)</p>
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.06);">
+                        {intent_html}
+                        {scenario_html}
+                        {impact_html}
+                    </div>
+                    <p><strong>Target Selector:</strong> <code>{b.selector}</code> &nbsp;|&nbsp; <strong>Action:</strong> <code>{b.action_type}</code> (Payload: <code>"{b.payload or ''}"</code>)</p>
                     <p><strong>Error Trace:</strong></p>
                     <pre class="error-trace">{b.error_message}</pre>
-                    <p><strong>Steps to Reproduce:</strong></p>
+                    <p><strong>Developer Steps to Reproduce:</strong></p>
                     <ol class="repro-list">{steps_html}</ol>
                 </div>
             </div>
