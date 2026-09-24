@@ -169,16 +169,34 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h3>${bug.title}</h3>
                             <span class="badge badge-danger">${bug.severity}</span>
                         </div>
-                        <div class="field-row">
-                            <strong>Target Selector:</strong> <code>${escapeHtml(bug.selector)}</code>
+                        
+                        <!-- Plain English Executive / Non-Technical Summary -->
+                        <div class="plain-english-box">
+                            ${bug.test_intent ? `
+                            <div class="meta-row">
+                                <span class="tag-label">🎯 Test Intent</span>
+                                <p>${escapeHtml(bug.test_intent)}</p>
+                            </div>` : ''}
+                            ${bug.user_scenario ? `
+                            <div class="meta-row">
+                                <span class="tag-label">👤 User Scenario</span>
+                                <p>${escapeHtml(bug.user_scenario)}</p>
+                            </div>` : ''}
+                            ${bug.business_impact ? `
+                            <div class="meta-row impact">
+                                <span class="tag-label danger">📉 App & Business Impact</span>
+                                <p>${escapeHtml(bug.business_impact)}</p>
+                            </div>` : ''}
                         </div>
-                        <div class="field-row">
-                            <strong>Action:</strong> <code>${bug.action_type}</code> 
+
+                        <!-- Technical Developer Section -->
+                        <div class="field-row" style="margin-top: 0.8rem;">
+                            <strong>Target Selector:</strong> <code>${escapeHtml(bug.selector)}</code> &nbsp;|&nbsp; <strong>Action:</strong> <code>${bug.action_type}</code> 
                             ${bug.payload ? `(Payload: <code>${escapeHtml(bug.payload)}</code>)` : ''}
                         </div>
                         <div class="error-box">${escapeHtml(bug.error_message)}</div>
                         <div class="repro-steps">
-                            <h4>Steps to Reproduce</h4>
+                            <h4>Developer Steps to Reproduce</h4>
                             <ol>${reproHtml}</ol>
                         </div>
                     </div>
