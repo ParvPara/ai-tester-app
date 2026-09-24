@@ -14,7 +14,7 @@ if GROQ_API_KEY:
     LLM_PROVIDER = "groq"
     LLM_API_KEY = GROQ_API_KEY
     LLM_BASE_URL = "https://api.groq.com/openai/v1"
-    LLM_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    LLM_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 elif OPENAI_API_KEY:
     LLM_PROVIDER = "openai"
     LLM_API_KEY = OPENAI_API_KEY
