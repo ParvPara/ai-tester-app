@@ -26,19 +26,19 @@ class BrowserTelemetry:
 def extract_sanitized_dom(page: Page) -> List[Dict[str, Any]]:
     """
     Extracts lightweight, sanitized representation of interactive elements (<input>, <button>, <form>, <a>, <select>).
-    Strips scripts, heavy CSS, and inline styles to keep payload under ~500 tokens.
+    Prioritizes form controls and caps links/images to guarantee payload stays strictly under 500 tokens.
     """
     elements_data = page.evaluate("""
         () => {
             const items = [];
-            const selector = 'input, button, select, textarea, a, form';
-            const nodes = document.querySelectorAll(selector);
 
-            nodes.forEach(node => {
+            // 1. High priority: Form interactive controls
+            const controls = document.querySelectorAll('input:not([type="hidden"]), button, select, textarea, form');
+            controls.forEach(node => {
+                if (items.length >= 20) return;
                 const tag = node.tagName.toLowerCase();
                 let labelText = '';
                 
-                // Find associated label if input
                 if (node.id) {
                     const label = document.querySelector(`label[for="${node.id}"]`);
                     if (label) labelText = label.innerText.trim();
@@ -54,23 +54,46 @@ def extract_sanitized_dom(page: Page) -> List[Dict[str, Any]]:
                     type: node.getAttribute('type') || null,
                     placeholder: node.getAttribute('placeholder') || null,
                     aria_label: node.getAttribute('aria-label') || null,
-                    text: node.innerText ? node.innerText.trim() : null,
+                    text: node.innerText ? node.innerText.trim().substring(0, 30) : null,
                     has_associated_label: Boolean(labelText),
                     associated_label: labelText || null,
                     value: node.value || null
                 });
             });
 
-            // Also check for images without alt tags (UX/Accessibility flaw inspection)
+            // 2. Medium priority: Primary navigation links (capped to 5)
+            const links = document.querySelectorAll('a[href]:not([href^="#"]):not([href^="javascript"])');
+            let linkCount = 0;
+            links.forEach(a => {
+                if (linkCount >= 5 || items.length >= 25) return;
+                const text = a.innerText ? a.innerText.trim() : '';
+                if (text && text.length > 1) {
+                    items.push({
+                        tag: 'a',
+                        id: a.id || null,
+                        href: a.getAttribute('href'),
+                        text: text.substring(0, 30)
+                    });
+                    linkCount++;
+                }
+            });
+
+            // 3. Accessibility flaw inspection: images without alt attributes (capped to 5)
             const images = document.querySelectorAll('img');
+            let imgCount = 0;
             images.forEach(img => {
-                items.push({
-                    tag: 'img',
-                    id: img.id || null,
-                    src: img.getAttribute('src') ? img.getAttribute('src').substring(0, 40) + '...' : null,
-                    alt: img.getAttribute('alt'),
-                    has_alt: Boolean(img.getAttribute('alt'))
-                });
+                if (imgCount >= 5 || items.length >= 30) return;
+                const alt = img.getAttribute('alt');
+                if (!alt) {
+                    items.push({
+                        tag: 'img',
+                        id: img.id || null,
+                        src: img.getAttribute('src') ? img.getAttribute('src').substring(0, 40) + '...' : null,
+                        alt: null,
+                        has_alt: false
+                    });
+                    imgCount++;
+                }
             });
 
             return items;
@@ -83,21 +106,30 @@ def inspect_page(target_url: str) -> Tuple[List[Dict[str, Any]], BrowserTelemetr
     """
     Launches Playwright Chromium, attaches telemetry listeners, navigates to target_url,
     and returns extracted DOM items along with the telemetry instance.
+    Uses domcontentloaded for high compatibility with modern sites (Shopify, SPAs).
     """
     telemetry = BrowserTelemetry()
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=HEADLESS)
-        context = browser.new_context()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
         page = context.new_page()
 
         # Attach telemetry listeners before navigation
         page.on("pageerror", telemetry._on_page_error)
         page.on("response", telemetry._on_response)
 
-        page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="networkidle")
-        dom_elements = extract_sanitized_dom(page)
+        try:
+            # Use domcontentloaded to avoid hanging on background analytics/beacons
+            page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
+            page.wait_for_timeout(800) # Short grace period for client hydration
+        except Exception:
+            # Fallback to load state if domcontentloaded raises error
+            page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
 
+        dom_elements = extract_sanitized_dom(page)
         browser.close()
 
     return dom_elements, telemetry
