@@ -200,6 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="field-row">
                             <strong>Issue:</strong> ${escapeHtml(ux.issue)}
                         </div>
+                        ${ux.impact_rationale ? `
+                        <div class="impact-box">
+                            <strong>⚠️ User Impact & Rationale:</strong> ${escapeHtml(ux.impact_rationale)}
+                        </div>` : ''}
                         <div class="fix-box">
                             <strong>Suggested Remediation:</strong> ${escapeHtml(ux.suggested_fix)}
                         </div>
