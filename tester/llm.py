@@ -7,15 +7,17 @@ from tester.schema import AuditResponse, FuzzAction, UXImprovement
 SYSTEM_PROMPT = """You are an expert QA Automation, UX Design, and Accessibility Auditor.
 Your task is to analyze a sanitized DOM tree of an application and generate:
 1. Targeted boundary/edge-case fuzz actions (`fuzz_actions`) to probe for runtime JavaScript crashes, validation bugs, or network errors (e.g., negative numbers, zero, empty input submit, special characters, injection strings, clicking action buttons).
-2. Semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure (e.g., inputs missing <label> or aria-label, images missing alt text, buttons lacking clear affordance, missing guidance).
+2. Human-friendly, semantic, layout, or accessibility flaws (`ux_improvements`) detected in the DOM structure.
 
-For every test action and UX finding, communicate clearly for BOTH engineers and non-technical stakeholders (Product Managers, Founders):
-- For `fuzz_actions`:
-  * `rationale`: What is being tested and why.
-  * `user_scenario`: What a real human user would do to trigger this (e.g., "A shopper accidentally enters -1 or clears the input box before clicking Place Order").
-  * `business_impact`: What happens to the customer and business if it breaks (e.g., "The checkout freezes completely, leaving the customer stranded and unable to pay, causing direct lost sales").
-- For `ux_improvements`:
-  * `impact_rationale`: What specific user confusion, friction, or accessibility barrier it causes (e.g., "Visually impaired customers using screen readers cannot tell what data is required").
+IMPORTANT TONE & CLARITY INSTRUCTIONS FOR UX IMPROVEMENTS:
+Write every `issue`, `impact_rationale`, and `suggested_fix` in SIMPLE, NON-TECHNICAL, INTUITIVE PLAIN ENGLISH that a non-technical Product Manager, Founder, or Client can instantly understand without knowing code or HTML tags.
+- DO NOT use heavy developer jargon like "lacks an associated <label> element", "missing ARIA role", "no aria-describedby", or "needs fieldset/legend" in the primary issue title.
+- INSTEAD describe the real human problem simply and clearly:
+  * Example for missing input label: "The quantity box has no title or label, so shoppers don't know what number to enter."
+  * Example for missing image alt: "The store icon has no text description, making it completely invisible to blind customers using voice screen readers."
+  * Example for vague buttons: "The 'Live Rates' button is confusing because it does not explain whether clicking it will calculate costs or charge the customer."
+  * Example for promo code formatting: "The discount box does not tell shoppers what promo codes look like or if uppercase letters are required."
+- In `suggested_fix`: Start with a simple 1-sentence plain-English action (e.g., "Add a clear visible 'Quantity' title above the box so shoppers immediately understand what to enter"), followed by the quick code snippet for developers.
 
 You MUST output ONLY a valid JSON object matching this exact structure:
 {
@@ -33,9 +35,9 @@ You MUST output ONLY a valid JSON object matching this exact structure:
     {
       "category": "Accessibility" or "Layout" or "Usability" or "Copywriting",
       "selector": "#element-id",
-      "issue": "Concise issue description",
+      "issue": "Simple, jargon-free description of the problem (e.g. 'The quantity box has no visible title')",
       "impact_rationale": "Why this matters: user confusion, friction, or accessibility barrier caused by this defect",
-      "suggested_fix": "Clear developer remediation or drop-in code snippet"
+      "suggested_fix": "Simple plain-English action followed by code snippet"
     }
   ]
 }
@@ -79,9 +81,9 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                 ux_improvements.append(UXImprovement(
                     category="Accessibility",
                     selector=selector,
-                    issue="Input field lacks an associated <label> element or 'aria-label' attribute.",
-                    impact_rationale="Screen readers cannot announce what this input field is for, leaving visually impaired users unable to understand what data to enter and likely causing form abandonment.",
-                    suggested_fix=f"Add <label for=\"{elem_id or 'input-id'}\">Label Name</label> or aria-label to support assistive technology."
+                    issue="The quantity input box has no visible title or label above it.",
+                    impact_rationale="Shoppers have to guess what this box is for, and blind customers using voice screen readers cannot hear any description, leading to confusion and abandoned purchases.",
+                    suggested_fix=f"Add a clear title like 'Item Quantity' above the box:\n<label for=\"{elem_id or 'item-quantity'}\">Item Quantity</label>"
                 ))
 
         elif tag == "button" or tag == "form":
@@ -110,9 +112,9 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                 ux_improvements.append(UXImprovement(
                     category="Accessibility",
                     selector=selector,
-                    issue="Image element is missing an 'alt' text description attribute.",
-                    impact_rationale="Assistive screen readers will announce confusing raw file paths instead of describing the image, creating cognitive friction for visually impaired users.",
-                    suggested_fix="Add descriptive alt=\"Header logo\" attribute, or alt=\"\" if decorative."
+                    issue="The store header icon has no text description attached to it.",
+                    impact_rationale="Visually impaired customers using screen reading software cannot tell what this image represents or may hear confusing file code read out loud.",
+                    suggested_fix="Add a short descriptive explanation for screen readers:\nalt=\"Company store logo\" (or alt=\"\" if purely decorative)."
                 ))
 
     # Add empty submit fuzz action if not present
