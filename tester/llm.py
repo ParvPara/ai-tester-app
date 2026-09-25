@@ -49,11 +49,12 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
     """
     fuzz_actions: List[FuzzAction] = []
     ux_improvements: List[UXImprovement] = []
+    seen_ux_selectors = set()
 
     for item in dom_elements:
         tag = item.get("tag")
         elem_id = item.get("id")
-        selector = f"#{elem_id}" if elem_id else tag
+        selector = item.get("selector") or (f"#{elem_id}" if elem_id else tag)
 
         if tag == "input":
             # Rule-based fuzz action: boundary values
@@ -76,15 +77,18 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> AuditResponse
                     business_impact="The promo lookup triggers a failed network call; if not handled, the customer sees an error and abandons their cart"
                 ))
             
-            # UX Flaw check: missing associated label
+            # UX Flaw check: missing associated label (deduplicated)
             if not item.get("has_associated_label") and not item.get("aria_label"):
-                ux_improvements.append(UXImprovement(
-                    category="Accessibility",
-                    selector=selector,
-                    issue="The quantity input box has no visible title or label above it.",
-                    impact_rationale="Shoppers have to guess what this box is for, and blind customers using voice screen readers cannot hear any description, leading to confusion and abandoned purchases.",
-                    suggested_fix=f"Add a clear title like 'Item Quantity' above the box:\n<label for=\"{elem_id or 'item-quantity'}\">Item Quantity</label>"
-                ))
+                if selector not in seen_ux_selectors:
+                    seen_ux_selectors.add(selector)
+                    name_hint = item.get("placeholder") or item.get("name") or elem_id or "Input Field"
+                    ux_improvements.append(UXImprovement(
+                        category="Accessibility",
+                        selector=selector,
+                        issue=f"The '{name_hint}' input box has no visible title or label above it.",
+                        impact_rationale="Shoppers have to guess what this box is for, and blind customers using voice screen readers cannot hear any description, leading to confusion and abandoned purchases.",
+                        suggested_fix=f"Add a clear title like '{name_hint}' above the box:\n<label for=\"{elem_id or 'input-field'}\">{name_hint}</label>"
+                    ))
 
         elif tag == "button" or tag == "form":
             elem_type = item.get("type")
@@ -187,7 +191,17 @@ def analyze_dom_with_llm(dom_elements: List[Dict[str, Any]]) -> AuditResponse:
                         parsed_data["fuzz_actions"] = parsed_data.pop(syn)
                         break
 
-            return AuditResponse.model_validate(parsed_data)
+            audit = AuditResponse.model_validate(parsed_data)
+            
+            # Deduplicate UX improvements so no selector is repeatedly reported
+            seen_selectors = set()
+            unique_ux = []
+            for ux in audit.ux_improvements:
+                if ux.selector not in seen_selectors:
+                    seen_selectors.add(ux.selector)
+                    unique_ux.append(ux)
+            audit.ux_improvements = unique_ux
+            return audit
 
     except Exception as err:
         print(f"[Warning] {LLM_PROVIDER.upper()} API call failed ({err}). Falling back to deterministic rule engine.")

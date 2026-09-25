@@ -47,8 +47,20 @@ def extract_sanitized_dom(page: Page) -> List[Dict[str, Any]]:
                     labelText = node.closest('label').innerText.trim();
                 }
 
+                let sel = tag;
+                if (node.id) {
+                    sel = `#${node.id}`;
+                } else if (node.getAttribute('name')) {
+                    sel = `${tag}[name="${node.getAttribute('name')}"]`;
+                } else if (node.getAttribute('placeholder')) {
+                    sel = `${tag}[placeholder="${node.getAttribute('placeholder').substring(0, 20)}"]`;
+                } else if (node.getAttribute('type')) {
+                    sel = `${tag}[type="${node.getAttribute('type')}"]`;
+                }
+
                 items.push({
                     tag: tag,
+                    selector: sel,
                     id: node.id || null,
                     name: node.getAttribute('name') || null,
                     type: node.getAttribute('type') || null,
