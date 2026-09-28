@@ -10,7 +10,8 @@ Your mission is to probe the target web application for unhandled client-side ru
 Analyze the sanitized DOM tree and generate targeted boundary fuzz actions (`fuzz_actions`):
 1. Numeric inputs: negative numbers (-1, -5), zero (0), float values, integer overflows (999999999).
 2. Freeform text & promo inputs: SQL injection (' OR 1=1;--), XSS/HTML tags (<script>, <svg/onload=alert(1)>), very long strings ("A" * 500), empty strings.
-3. Form submissions & action buttons: clicking submit buttons with empty or invalid states, triggering rate/discount buttons without prerequisites.
+3. Interactive buttons: YOU MUST generate a 'click' action for EVERY button found in the DOM (e.g. promo claim buttons, rate calculation buttons, submit buttons) to probe network endpoints.
+4. Form submissions: clicking submit buttons with empty or invalid states.
 
 For every action, provide:
 - `rationale`: What is being tested and why.
@@ -139,6 +140,25 @@ def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
                     break
 
         out = FuzzerOutput.model_validate(parsed)
+
+        # Ensure all interactive buttons in the DOM have a corresponding test action
+        existing_click_selectors = {a.selector for a in out.fuzz_actions if a.action_type == "click"}
+        for item in dom_elements:
+            if item.get("tag") == "button":
+                btn_id = item.get("id")
+                sel = item.get("selector") or (f"#{btn_id}" if btn_id else "button")
+                if sel not in existing_click_selectors:
+                    btn_text = item.get("text") or sel
+                    out.fuzz_actions.append(FuzzAction(
+                        selector=sel,
+                        action_type="click",
+                        payload="",
+                        rationale=f"Trigger action button '{btn_text}' to test backend API response and client-side stability",
+                        user_scenario=f"A shopper clicks '{btn_text}' expecting an immediate result",
+                        business_impact="If the network endpoint fails or crashes, the customer is stranded and transaction fails"
+                    ))
+                    existing_click_selectors.add(sel)
+
         return out.fuzz_actions
 
     except Exception as err:

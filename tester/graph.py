@@ -129,11 +129,25 @@ class AppTesterGraph:
                     if action.action_type == "fill":
                         repro_steps.append(f"2. Fill input '{action.selector}' with payload: '{action.payload}'")
                         page.fill(action.selector, action.payload or "", timeout=2000)
+                        page.wait_for_timeout(200)
+
+                        # Trigger client-side validation by submitting the enclosing form if present
+                        submit_btn = (
+                            page.query_selector(f"{action.selector} >> xpath=ancestor::form//button[@type='submit']")
+                            or page.query_selector(f"{action.selector} >> xpath=ancestor::form//button")
+                            or page.query_selector("button[type='submit']")
+                        )
+                        if submit_btn:
+                            repro_steps.append("3. Submit form to trigger client-side validation and boundary handling")
+                            submit_btn.click(timeout=1500)
+                        else:
+                            page.press(action.selector, "Enter")
+
                     elif action.action_type == "click":
                         repro_steps.append(f"2. Click element '{action.selector}'")
                         page.click(action.selector, timeout=2000)
 
-                    page.wait_for_timeout(400)
+                    page.wait_for_timeout(500)
 
                 except PlaywrightError:
                     pass
