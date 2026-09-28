@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioGear Store - Shopping Cart</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .navbar {
+            width: 100%;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .nav-link {
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+        .nav-link:hover { color: #fff; background: rgba(56, 189, 248, 0.2); }
+        .container {
+            width: 100%;
+            max-width: 520px;
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin: 3rem auto;
+            box-sizing: border-box;
+        }
+        h2 { margin-top: 0; color: #f8fafc; }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #334155;
+        }
+        .cart-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .cart-section h4 {
+            margin: 0 0 0.75rem 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        button {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            background: #475569;
+            color: #e2e8f0;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-checkout {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: #0284c7;
+            color: white;
+            padding: 0.9rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+        .btn-checkout:hover { background: #0369a1; }
+        .status-msg {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            display: none;
+            font-size: 0.85rem;
+        }
+        .error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+        .success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
+        .header-icon { width: 36px; height: 36px; }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <a href="/index.html" class="brand">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon" alt="">
+            <span>AudioGear Direct</span>
+        </a>
+        <a href="/index.html" class="nav-link">← Continue Shopping</a>
+    </header>
+
+    <main class="container">
+        <h2>Your Shopping Cart</h2>
+
+        <div class="cart-item">
+            <div>
+                <strong>Quantum ANC Wireless Headphones</strong>
+                <div style="color: #94a3b8; font-size: 0.85rem;" id="cart-item-qty">Quantity: 1</div>
+            </div>
+            <div style="font-weight: 700; color: #38bdf8;">$199.00</div>
+        </div>
+
+        <!-- Section 1: Promo Code -->
+        <div class="cart-section">
+            <h4>Promo Code</h4>
+            <div class="input-group">
+                <!-- Seeded Accessibility Bug: Missing label tag on promo-code -->
+                <input type="text" id="promo-code" placeholder="Enter coupon code (e.g. SAVE20)">
+                <button type="button" id="claim-promo-btn">Apply Discount</button>
+            </div>
+            <div id="promo-status" class="status-msg"></div>
+        </div>
+
+        <!-- Section 2: Live Shipping Rates -->
+        <div class="cart-section">
+            <h4>Shipping Estimates</h4>
+            <button type="button" id="calc-shipping-btn" style="width: 100%;">Calculate Shipping Rates</button>
+            <div id="shipping-status" class="status-msg"></div>
+        </div>
+
+        <!-- Navigation Link to Checkout -->
+        <a href="/checkout.html" id="proceed-checkout-btn" class="btn-checkout">Proceed to Checkout ➔</a>
+    </main>
+
+    <script>
+        // Retrieve quantity from previous page if set
+        const savedQty = localStorage.getItem('cart_quantity');
+        if (savedQty) {
+            document.getElementById('cart-item-qty').textContent = 'Quantity: ' + savedQty;
+        }
+
+        // Seeded Hard Bug 2: Failed Network Request (HTTP 404)
+        document.getElementById('claim-promo-btn').addEventListener('click', async () => {
+            const promoInput = document.getElementById('promo-code');
+            const statusMsg = document.getElementById('promo-status');
+            statusMsg.style.display = 'block';
+            statusMsg.className = 'status-msg';
+            statusMsg.textContent = 'Checking promo code...';
+
+            try {
+                const res = await fetch('/api/claim-promo-discount?code=' + encodeURIComponent(promoInput.value));
+                if (!res.ok) {
+                    statusMsg.className = 'status-msg error';
+                    statusMsg.textContent = 'Failed to apply promo: HTTP ' + res.status;
+                } else {
+                    const data = await res.json();
+                    statusMsg.className = 'status-msg success';
+                    statusMsg.textContent = 'Discount applied: ' + data.discount + '% OFF';
+                }
+            } catch (err) {
+                statusMsg.className = 'status-msg error';
+                statusMsg.textContent = 'Network Error: ' + err.message;
+            }
+        });
+
+        // Seeded Hard Bug 3: Failed Network Request (HTTP 404)
+        document.getElementById('calc-shipping-btn').addEventListener('click', async () => {
+            const statusMsg = document.getElementById('shipping-status');
+            statusMsg.style.display = 'block';
+            statusMsg.className = 'status-msg';
+            statusMsg.textContent = 'Fetching carrier rates...';
+
+            try {
+                const res = await fetch('/api/v1/shipping/rates?tier=standard');
+                if (!res.ok) {
+                    statusMsg.className = 'status-msg error';
+                    statusMsg.textContent = 'Failed to calculate rates: HTTP ' + res.status;
+                } else {
+                    statusMsg.className = 'status-msg success';
+                    statusMsg.textContent = 'Standard Ground: $9.99 | Express Air: $24.99';
+                }
+            } catch (err) {
+                statusMsg.className = 'status-msg error';
+                statusMsg.textContent = 'Network Error: ' + err.message;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioGear Store - Catalog</title>
+    <title>AudioGear Store - Checkout</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -44,13 +44,10 @@
             background: rgba(255, 255, 255, 0.05);
             transition: all 0.2s;
         }
-        .nav-link:hover {
-            color: #fff;
-            background: rgba(56, 189, 248, 0.2);
-        }
+        .nav-link:hover { color: #fff; background: rgba(56, 189, 248, 0.2); }
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 520px;
             background: #1e293b;
             padding: 2rem;
             border-radius: 12px;
@@ -59,43 +56,32 @@
             box-sizing: border-box;
         }
         h2 { margin-top: 0; color: #f8fafc; }
-        .product-card {
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 1.25rem;
-            background: #0f172a;
-            margin-bottom: 1.5rem;
-        }
-        .product-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #38bdf8;
-            margin-bottom: 0.5rem;
-        }
         .form-group { margin-bottom: 1.25rem; }
-        input[type="number"], input[type="text"] {
+        label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: #94a3b8; }
+        input[type="text"], select {
             width: 100%;
             padding: 0.75rem;
             border-radius: 6px;
             border: 1px solid #334155;
-            background: #1e293b;
+            background: #0f172a;
             color: #fff;
             box-sizing: border-box;
             font-size: 0.95rem;
         }
         button {
             width: 100%;
-            padding: 0.85rem;
+            padding: 0.9rem;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-weight: 700;
+            font-size: 1rem;
             background: #0284c7;
             color: white;
-            transition: opacity 0.2s;
+            transition: background 0.2s;
+            margin-top: 1rem;
         }
-        button:hover { opacity: 0.9; }
+        button:hover { background: #0369a1; }
         .status-msg {
             margin-top: 1rem;
             padding: 0.75rem;
@@ -111,50 +97,63 @@
 <body>
     <header class="navbar">
         <a href="/index.html" class="brand">
-            <!-- Seeded Accessibility Bug: Missing alt tag on image icon -->
-            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon" alt="">
             <span>AudioGear Direct</span>
         </a>
-        <a href="/cart.html" id="nav-cart-btn" class="nav-link">Shopping Cart (🛒)</a>
+        <a href="/cart.html" class="nav-link">← Back to Cart</a>
     </header>
 
     <main class="container">
-        <h2>Premium Audio Store</h2>
-        <div class="product-card">
-            <div class="product-price">$199.00</div>
-            <h3>Quantum ANC Wireless Headphones</h3>
-            <p style="color: #94a3b8; font-size: 0.9rem;">Studio-grade acoustic transparency with active hybrid cancellation.</p>
-        </div>
+        <h2>Complete Your Checkout</h2>
 
-        <form id="catalog-order-form">
+        <form id="checkout-form">
             <div class="form-group">
-                <!-- Seeded Accessibility Bug: Missing label tag on item-quantity -->
-                <input type="number" id="item-quantity" placeholder="Enter quantity to purchase" value="1">
+                <!-- Seeded Accessibility Bug: Missing label tag on customer-name -->
+                <input type="text" id="customer-name" placeholder="Full delivery name (e.g. Jane Doe)">
             </div>
-            <button type="submit" id="add-to-cart-btn">Add to Cart & Checkout</button>
+
+            <div class="form-group">
+                <label for="shipping-tier">Shipping Method</label>
+                <select id="shipping-tier">
+                    <option value="standard">Standard Ground Delivery (3-5 days)</option>
+                    <option value="express">Overnight Express Courier ($24.99)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="gift-note">Gift Message / Delivery Instructions</label>
+                <input type="text" id="gift-note" placeholder="Optional gift note (plain text only)">
+            </div>
+
+            <button type="submit" id="submit-order-btn">Place Order & Authorize Payment</button>
         </form>
 
         <div id="status-message" class="status-msg"></div>
     </main>
 
     <script>
-        document.getElementById('catalog-order-form').addEventListener('submit', (e) => {
+        document.getElementById('checkout-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const quantityRaw = document.getElementById('item-quantity').value.trim();
-            const quantity = Number(quantityRaw);
+            const customerName = document.getElementById('customer-name').value.trim();
+            const shippingTier = document.getElementById('shipping-tier').value;
+            const giftNote = document.getElementById('gift-note').value;
             const statusMsg = document.getElementById('status-message');
 
-            // Seeded Hard Bug 1: Uncaught JS TypeError on negative or empty boundary values
-            if (!quantityRaw || isNaN(quantity) || quantity <= 0) {
-                throw new Error("Uncaught TypeError: Cannot calculate inventory tax for invalid quantity '" + quantityRaw + "'");
+            const savedQty = Number(localStorage.getItem('cart_quantity') || '1');
+
+            // Seeded Hard Bug 4: Script/HTML injection syntax crash on gift note
+            if (giftNote && (giftNote.includes('<') || giftNote.includes('>') || giftNote.includes(';') || giftNote.includes("'") || giftNote.includes('"'))) {
+                throw new Error("Uncaught DOMException: Failed to sanitize unsafe gift note payload: '" + giftNote + "'");
+            }
+
+            // Seeded Hard Bug 5: Range/Capacity Overflow on express shipping with high quantity
+            if (savedQty > 50 && shippingTier === 'express') {
+                throw new Error("Uncaught RangeError: Order quantity (" + savedQty + ") exceeds maximum express courier cargo capacity (limit: 50)");
             }
 
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg success';
-            statusMsg.innerHTML = "Added " + quantity + " item(s) to cart! <a href='/cart.html' style='color:#38bdf8;font-weight:bold;'>Go to Cart ➔</a>";
-            
-            // Persist quantity in localStorage for next page
-            localStorage.setItem('cart_quantity', quantity);
+            statusMsg.textContent = "Thank you! Order successfully placed for " + (customerName || "Customer") + " via " + shippingTier + ".";
         });
     </script>
 </body>
