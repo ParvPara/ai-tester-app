@@ -56,7 +56,8 @@ def evaluate_execution_telemetry(
             test_intent=intent,
             user_scenario=scenario,
             business_impact=impact,
-            reproduction_steps=list(repro_steps)
+            reproduction_steps=list(repro_steps),
+            page_url=action.page_url or target_url
         ))
 
     # 2. Gate: HTTP 4xx / 5xx Network Failures
@@ -90,7 +91,8 @@ def evaluate_execution_telemetry(
             test_intent=intent,
             user_scenario=scenario,
             business_impact=impact,
-            reproduction_steps=list(repro_steps)
+            reproduction_steps=list(repro_steps),
+            page_url=action.page_url or target_url
         ))
 
     return verified_bugs

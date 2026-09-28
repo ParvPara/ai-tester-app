@@ -25,6 +25,8 @@ def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImp
                 print(f"      👤 User Scenario  : {bug.user_scenario}")
             if bug.business_impact:
                 print(f"      📉 Business Impact: {bug.business_impact}")
+            if bug.page_url:
+                print(f"      📍 Page Route     : {bug.page_url}")
             print(f"      Target Selector : {bug.selector}")
             print(f"      Action / Payload: {bug.action_type} -> '{bug.payload or ''}'")
             print(f"      Error Details   : {bug.error_message}")
@@ -40,7 +42,8 @@ def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImp
         print("  ✨ Zero UX or accessibility issues detected.")
     else:
         for i, ux in enumerate(ux_improvements, start=1):
-            print(f"  [{i}] [{ux.category}] Target: {ux.selector}")
+            route_info = f" [{ux.page_url}]" if ux.page_url else ""
+            print(f"  [{i}] [{ux.category}]{route_info} Target: {ux.selector}")
             print(f"      Issue Description: {ux.issue}")
             if ux.impact_rationale:
                 print(f"      User Impact / Why: {ux.impact_rationale}")
@@ -63,11 +66,13 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
             intent_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>🎯 TEST INTENT</span> <span style='font-size: 0.9rem; color: #e2e8f0;'>{b.test_intent}</span></div>" if b.test_intent else ""
             scenario_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(148,163,184,0.15); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>👤 USER SCENARIO</span> <span style='font-size: 0.9rem; color: #cbd5e1;'>{b.user_scenario}</span></div>" if b.user_scenario else ""
             impact_html = f"<div style='margin-bottom: 0.5rem;'><span style='background: rgba(239,68,68,0.15); color: #fca5a5; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;'>📉 BUSINESS IMPACT</span> <span style='font-size: 0.9rem; color: #fca5a5;'>{b.business_impact}</span></div>" if b.business_impact else ""
+            route_tag = f"<span class='badge' style='background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 0.75rem; margin-left: 0.5rem;'>📍 {b.page_url}</span>" if b.page_url else ""
             
             hard_bugs_html += f"""
             <div class="card bug-card">
                 <div class="card-header">
                     <span class="badge badge-danger">{b.severity}</span>
+                    {route_tag}
                     <h3 class="card-title">{b.title}</h3>
                 </div>
                 <div class="card-body">
@@ -91,10 +96,12 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
     else:
         for ux in ux_improvements:
             impact_html = f"<p style='color: #fde68a; margin: 0.5rem 0;'><strong>⚠️ User Impact & Rationale:</strong> {ux.impact_rationale}</p>" if ux.impact_rationale else ""
+            route_tag = f"<span class='badge' style='background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 0.75rem; margin-left: 0.5rem;'>📍 {ux.page_url}</span>" if ux.page_url else ""
             ux_html += f"""
             <div class="card ux-card">
                 <div class="card-header">
                     <span class="badge badge-warning">{ux.category}</span>
+                    {route_tag}
                     <h3 class="card-title">Target: <code>{ux.selector}</code></h3>
                 </div>
                 <div class="card-body">

@@ -95,6 +95,7 @@ class GUIRequestHandler(http.server.SimpleHTTPRequestHandler):
                     "elapsed_time": state.elapsed_time,
                     "element_count": len(state.dom_elements),
                     "fuzz_actions_count": len(state.fuzz_actions),
+                    "audited_routes": state.audited_routes,
                     "hard_bugs": [b.model_dump() for b in state.hard_bugs],
                     "ux_improvements": [ux.model_dump() for ux in state.ux_improvements],
                     "completed_nodes": state.completed_nodes

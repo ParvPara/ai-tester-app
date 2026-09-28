@@ -13,17 +13,17 @@ from tester.agents.judge import evaluate_execution_telemetry
 
 class AppTesterGraph:
     """
-    Parallel Multi-Agent State Graph Orchestrator.
+    Parallel Multi-Agent State Graph Orchestrator with Multi-Page Route Sweep.
     
     Graph Topology:
-    [Target URL]
+    [Target URL] (Black-box over HTTP)
           │
           ▼
-    [1. DOM Ingestion Node] (Playwright headless inspection)
+    [1. DOM Ingestion & Multi-Route Discovery] ──► Discovers same-origin links (Top 3 pages)
           │
           ├──────────────────────────────┐
           ▼                              ▼
-    [2a. Adversarial Fuzzer Node]   [2b. WCAG & UX Auditor Node]   <-- (Parallel ThreadPool execution)
+    [2a. Adversarial Fuzzer Node]   [2b. WCAG & UX Auditor Node]   <-- (ThreadPool per route)
           │                              │
           ▼                              │
     [3. Playwright Grounding Gate]       │
@@ -36,15 +36,17 @@ class AppTesterGraph:
     [5. Dual-Bucket Synthesis Node]
           │
           ▼
-    [Verified Hard Bugs + Plain-English UX Improvements]
+    [Verified Hard Bugs + Plain-English UX Improvements across All Routes]
     """
 
     def __init__(
         self,
         target_url: str,
+        max_routes: int = 3,
         on_step_callback: Optional[Callable[[str, str, Optional[Dict[str, Any]]], None]] = None
     ):
         self.state = AgentState(target_url=target_url)
+        self.max_routes = max_routes
         self.callback = on_step_callback or (lambda node, status, data=None: None)
 
     def _notify(self, node_name: str, status: str, data: Optional[Dict[str, Any]] = None):
@@ -63,43 +65,86 @@ class AppTesterGraph:
         print(f"=======================================================")
 
         # ----------------------------------------------------
-        # NODE 1: DOM Ingestion Node
+        # NODE 1: DOM Ingestion & Same-Origin Route Discovery
         # ----------------------------------------------------
         self._notify("dom_ingest", "running")
-        print("\n[Node 1: DOM Ingestion] Harvesting interactive controls via Playwright...")
-        dom_elements, initial_telemetry = inspect_page(self.state.target_url)
-        self.state.dom_elements = dom_elements
-        self._notify("dom_ingest", "completed", {"element_count": len(dom_elements)})
-        print(f"  ✓ Harvested {len(dom_elements)} interactive elements (inputs, buttons, links, images)")
+        print("\n[Node 1: DOM Ingestion] Harvesting interactive controls & discovering same-origin routes...")
+
+        routes_to_visit = [self.state.target_url]
+        visited_routes: List[str] = []
+        page_elements_map: Dict[str, List[Dict[str, Any]]] = {}
+        all_dom_elements: List[Dict[str, Any]] = []
+
+        while routes_to_visit and len(visited_routes) < self.max_routes:
+            current_url = routes_to_visit.pop(0)
+            if current_url in visited_routes:
+                continue
+
+            dom_elements, discovered_routes, _ = inspect_page(current_url)
+            visited_routes.append(current_url)
+            page_elements_map[current_url] = dom_elements
+            all_dom_elements.extend(dom_elements)
+
+            for route in discovered_routes:
+                if route not in visited_routes and route not in routes_to_visit:
+                    if len(visited_routes) + len(routes_to_visit) < self.max_routes:
+                        routes_to_visit.append(route)
+
+        self.state.audited_routes = visited_routes
+        self.state.dom_elements = all_dom_elements
+        self._notify("dom_ingest", "completed", {
+            "element_count": len(all_dom_elements),
+            "route_count": len(visited_routes),
+            "routes": visited_routes
+        })
+        print(f"  ✓ Discovered {len(visited_routes)} route(s):")
+        for r in visited_routes:
+            print(f"    • {r}")
+        print(f"  ✓ Harvested {len(all_dom_elements)} interactive elements total across all routes")
 
         # ----------------------------------------------------
         # NODE 2: Parallel Multi-Agent Analysis Node
-        # (Adversarial Fuzzer || WCAG & UX Auditor)
+        # (Fuzzer || Auditor concurrently across routes)
         # ----------------------------------------------------
         self._notify("parallel_agents", "running")
-        print("\n[Node 2: Parallel Agents] Spawning Fuzzer Agent & Auditor Agent concurrently...")
+        print(f"\n[Node 2: Parallel Agents] Spawning Fuzzer & Auditor concurrently across {len(visited_routes)} route(s)...")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_fuzzer = executor.submit(run_fuzzer_agent, dom_elements)
-            future_auditor = executor.submit(run_auditor_agent, dom_elements)
+        all_fuzz_actions: List[FuzzAction] = []
+        all_ux_improvements: List[UXImprovement] = []
 
-            fuzz_actions = future_fuzzer.result()
-            ux_improvements = future_auditor.result()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_route = {}
+            for route_url, elems in page_elements_map.items():
+                future_fuzzer = executor.submit(run_fuzzer_agent, elems)
+                future_auditor = executor.submit(run_auditor_agent, elems)
+                future_to_route[route_url] = (future_fuzzer, future_auditor)
 
-        self.state.fuzz_actions = fuzz_actions
-        self.state.ux_improvements = ux_improvements
+            for route_url, (fuzzer_fut, auditor_fut) in future_to_route.items():
+                route_fuzz = fuzzer_fut.result()
+                route_ux = auditor_fut.result()
+
+                for act in route_fuzz:
+                    act.page_url = route_url
+                    all_fuzz_actions.append(act)
+
+                for ux in route_ux:
+                    ux.page_url = route_url
+                    all_ux_improvements.append(ux)
+
+        self.state.fuzz_actions = all_fuzz_actions
+        self.state.ux_improvements = all_ux_improvements
         self._notify("parallel_agents", "completed", {
-            "fuzz_count": len(fuzz_actions),
-            "ux_count": len(ux_improvements)
+            "fuzz_count": len(all_fuzz_actions),
+            "ux_count": len(all_ux_improvements)
         })
-        print(f"  ✓ Fuzzer Agent produced {len(fuzz_actions)} boundary test hypotheses")
-        print(f"  ✓ Auditor Agent produced {len(ux_improvements)} plain-English UX/accessibility improvements")
+        print(f"  ✓ Fuzzer Agent produced {len(all_fuzz_actions)} boundary test hypotheses across all routes")
+        print(f"  ✓ Auditor Agent produced {len(all_ux_improvements)} plain-English UX/accessibility improvements")
 
         # ----------------------------------------------------
         # NODE 3 & 4: Playwright Grounding Gate & Judge Node
         # ----------------------------------------------------
         self._notify("playwright_gate", "running")
-        print(f"\n[Node 3: Playwright Grounding Gate] Executing {len(fuzz_actions)} test actions with live error interception...")
+        print(f"\n[Node 3: Playwright Grounding Gate] Executing {len(all_fuzz_actions)} test actions with live error interception...")
 
         hard_bugs: List[HardBug] = []
 
@@ -109,7 +154,8 @@ class AppTesterGraph:
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
 
-            for idx, action in enumerate(fuzz_actions, 1):
+            for idx, action in enumerate(all_fuzz_actions, 1):
+                action_target_url = action.page_url or self.state.target_url
                 telemetry = BrowserTelemetry()
                 page = context.new_page()
 
@@ -117,14 +163,14 @@ class AppTesterGraph:
                 page.on("pageerror", telemetry._on_page_error)
                 page.on("response", telemetry._on_response)
 
-                repro_steps = [f"1. Open target URL: {self.state.target_url}"]
+                repro_steps = [f"1. Open target URL: {action_target_url}"]
 
                 try:
                     try:
-                        page.goto(self.state.target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
+                        page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
                         page.wait_for_timeout(300)
                     except Exception:
-                        page.goto(self.state.target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
+                        page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
 
                     if action.action_type == "fill":
                         repro_steps.append(f"2. Fill input '{action.selector}' with payload: '{action.payload}'")
@@ -157,7 +203,7 @@ class AppTesterGraph:
                     # ----------------------------------------------------
                     action_bugs = evaluate_execution_telemetry(
                         action=action,
-                        target_url=self.state.target_url,
+                        target_url=action_target_url,
                         page_errors=telemetry.page_errors,
                         network_errors=telemetry.network_errors,
                         repro_steps=repro_steps
@@ -167,7 +213,7 @@ class AppTesterGraph:
 
             browser.close()
 
-        self._notify("playwright_gate", "completed", {"executed_count": len(fuzz_actions)})
+        self._notify("playwright_gate", "completed", {"executed_count": len(all_fuzz_actions)})
         self._notify("judge_node", "completed", {"verified_hard_bugs": len(hard_bugs)})
         self.state.hard_bugs = hard_bugs
         print(f"  ✓ False Positive Judge Node verified {len(hard_bugs)} deterministic hard bugs (0% false positives)")
@@ -185,7 +231,7 @@ class AppTesterGraph:
         })
 
         print(f"\n=======================================================")
-        print(f"✨ Multi-Agent Graph Completed in {total_time}s")
+        print(f"✨ Multi-Agent Graph Completed in {total_time}s across {len(visited_routes)} route(s)")
         print(f"   Hard Bugs Verified: {len(self.state.hard_bugs)}")
         print(f"   UX Improvements:    {len(self.state.ux_improvements)}")
         print(f"=======================================================\n")
@@ -195,8 +241,9 @@ class AppTesterGraph:
 
 def run_multi_agent_pipeline(
     target_url: str,
+    max_routes: int = 3,
     on_step_callback: Optional[Callable[[str, str, Optional[Dict[str, Any]]], None]] = None
 ) -> AgentState:
     """Convenience entry point for running the complete multi-agent graph pipeline."""
-    graph = AppTesterGraph(target_url, on_step_callback=on_step_callback)
+    graph = AppTesterGraph(target_url, max_routes=max_routes, on_step_callback=on_step_callback)
     return graph.run()
