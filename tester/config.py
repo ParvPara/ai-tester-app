@@ -29,3 +29,15 @@ else:
 # Playwright execution settings
 HEADLESS = True
 BROWSER_TIMEOUT_MS = 10000
+
+# Common 3rd party analytics/tracker domains to ignore for zero false-positive hard bugs
+TRACKER_IGNORE_DOMAINS = (
+    "google-analytics.com",
+    "googletagmanager.com",
+    "facebook.net",
+    "doubleclick.net",
+    "clarity.ms",
+    "hotjar.com",
+    "datadoghq.com"
+)
+

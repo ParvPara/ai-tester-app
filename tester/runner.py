@@ -1,20 +1,10 @@
 import urllib.parse
 from typing import List, Tuple
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
-from tester.config import HEADLESS, BROWSER_TIMEOUT_MS
+from tester.config import HEADLESS, BROWSER_TIMEOUT_MS, TRACKER_IGNORE_DOMAINS
 from tester.schema import AuditResponse, HardBug, UXImprovement
 from tester.browser import BrowserTelemetry
 
-# Common 3rd party analytics/tracker domains to ignore for zero false-positive hard bugs
-TRACKER_IGNORE_DOMAINS = (
-    "google-analytics.com",
-    "googletagmanager.com",
-    "facebook.net",
-    "doubleclick.net",
-    "clarity.ms",
-    "hotjar.com",
-    "datadoghq.com"
-)
 
 def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[HardBug], List[UXImprovement]]:
     """
