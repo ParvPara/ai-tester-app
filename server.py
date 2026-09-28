@@ -7,9 +7,7 @@ import http.server
 import socketserver
 import threading
 import urllib.request
-from tester.browser import inspect_page
-from tester.llm import analyze_dom_with_llm
-from tester.runner import execute_fuzz_tests
+from tester.graph import run_multi_agent_pipeline
 
 GUI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gui")
 TARGET_APP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "target-app")
@@ -88,27 +86,18 @@ class GUIRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if not target_url.startswith("http://") and not target_url.startswith("https://"):
                     target_url = "http://" + target_url
 
-                start_time = time.time()
-
-                # Step 1: Inspect DOM
-                dom_elements, _ = inspect_page(target_url)
-
-                # Step 2: LLM Semantic Reasoning
-                audit = analyze_dom_with_llm(dom_elements)
-
-                # Step 3: Deterministic Fuzz Execution
-                hard_bugs, ux_improvements = execute_fuzz_tests(target_url, audit)
-
-                elapsed = time.time() - start_time
+                # Execute Parallel Multi-Agent State Graph Pipeline
+                state = run_multi_agent_pipeline(target_url)
 
                 response_payload = {
                     "success": True,
-                    "target_url": target_url,
-                    "elapsed_time": round(elapsed, 2),
-                    "element_count": len(dom_elements),
-                    "fuzz_actions_count": len(audit.fuzz_actions),
-                    "hard_bugs": [b.model_dump() for b in hard_bugs],
-                    "ux_improvements": [ux.model_dump() for ux in ux_improvements]
+                    "target_url": state.target_url,
+                    "elapsed_time": state.elapsed_time,
+                    "element_count": len(state.dom_elements),
+                    "fuzz_actions_count": len(state.fuzz_actions),
+                    "hard_bugs": [b.model_dump() for b in state.hard_bugs],
+                    "ux_improvements": [ux.model_dump() for ux in state.ux_improvements],
+                    "completed_nodes": state.completed_nodes
                 }
                 self._send_json(response_payload)
 
