@@ -115,8 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Mark all nodes completed with exact metrics
-            setNodeStatus('dom-ingest', 'completed', `${result.element_count} interactive controls extracted`);
-            setNodeStatus('fuzzer', 'completed', `${result.fuzz_actions_count} boundary hypotheses generated`);
+            const routeCount = (result.audited_routes && result.audited_routes.length) ? result.audited_routes.length : 1;
+            setNodeStatus('dom-ingest', 'completed', `${routeCount} route(s) swept (${result.element_count} controls total)`);
+            setNodeStatus('fuzzer', 'completed', `${result.fuzz_actions_count} boundary hypotheses across ${routeCount} route(s)`);
             setNodeStatus('auditor', 'completed', `${result.ux_improvements.length} UX & accessibility flaws detected`);
             setNodeStatus('playwright-gate', 'completed', `${result.fuzz_actions_count} test actions executed & intercepted`);
             setNodeStatus('judge', 'completed', `${result.hard_bugs.length} hard bugs verified (0% false positives)`);
@@ -125,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Header state completed
             if (spinner) spinner.style.display = 'none';
             progressTitle.textContent = 'Multi-Agent State Graph Complete';
-            progressSub.textContent = `All graph nodes finished in ${result.elapsed_time}s. 0% false positives guaranteed.`;
+            progressSub.textContent = `All graph nodes finished in ${result.elapsed_time}s across ${routeCount} route(s). 0% false positives guaranteed.`;
 
             // Populate Results
             renderResults(result);
@@ -186,6 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
         metricUx.textContent = data.ux_improvements.length;
         metricElements.textContent = data.element_count;
 
+        const routeCount = (data.audited_routes && data.audited_routes.length) ? data.audited_routes.length : 1;
+        if (routeCount > 1) {
+            const sub = metricElements.parentElement.querySelector('.metric-sub');
+            if (sub) sub.textContent = `${routeCount} Routes Swept`;
+        }
+
         countBugs.textContent = data.hard_bugs.length;
         countUx.textContent = data.ux_improvements.length;
 
@@ -198,7 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                     <div class="report-card bug">
                         <div class="card-top">
-                            <h3>${bug.title}</h3>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <h3>${bug.title}</h3>
+                                ${bug.page_url ? `<span class="route-badge">📍 ${escapeHtml(bug.page_url)}</span>` : ''}
+                            </div>
                             <span class="badge badge-danger">${bug.severity}</span>
                         </div>
                         
@@ -244,7 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                     <div class="report-card ux">
                         <div class="card-top">
-                            <h3>Target: <code>${escapeHtml(ux.selector)}</code></h3>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <h3>Target: <code>${escapeHtml(ux.selector)}</code></h3>
+                                ${ux.page_url ? `<span class="route-badge">📍 ${escapeHtml(ux.page_url)}</span>` : ''}
+                            </div>
                             <span class="badge badge-warning">${ux.category}</span>
                         </div>
                         <div class="field-row">

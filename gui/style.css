@@ -793,6 +793,17 @@ code {
     max-height: 400px;
 }
 
+.route-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.18rem 0.55rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .empty-state {
     text-align: center;
     padding: 3rem 1rem;
