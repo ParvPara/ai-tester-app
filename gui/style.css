@@ -239,7 +239,7 @@ body {
     color: #fff;
 }
 
-/* Progress Stepper */
+/* Multi-Agent State Graph Panel */
 .progress-panel {
     border-left: 4px solid var(--accent);
 }
@@ -247,76 +247,270 @@ body {
 .stepper-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
 }
 
+.agent-graph-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    margin-bottom: 0.35rem;
+}
+
 .spinner {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border: 3px solid rgba(56, 189, 248, 0.2);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-.step-indicators {
+/* Agent Graph Canvas */
+.agent-graph-canvas {
+    background: rgba(10, 15, 29, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
 }
 
-.step {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    opacity: 0.4;
-    transition: all 0.3s ease;
+.agent-graph-canvas::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
 }
 
-.step.active {
+.graph-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    z-index: 1;
+}
+
+/* Graph Node Cards */
+.graph-node {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: rgba(19, 27, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 1.15rem;
+    width: 100%;
+    max-width: 580px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    opacity: 0.5;
+}
+
+.graph-node.active {
     opacity: 1;
+    border-color: var(--accent);
+    background: rgba(23, 34, 59, 1);
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+    transform: translateY(-2px);
+    animation: node-pulse 2s infinite;
 }
 
-.step.completed {
-    opacity: 0.85;
+.graph-node.completed {
+    opacity: 0.95;
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 26, 46, 0.95);
 }
 
-.step-num {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+@keyframes node-pulse {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 28px rgba(56, 189, 248, 0.45);
+    }
+}
+
+.node-icon {
+    font-size: 1.4rem;
+    background: rgba(255, 255, 255, 0.06);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
-.step.active .step-num {
-    background: var(--accent);
-    color: #0b0f19;
+.graph-node.active .node-icon {
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.4);
 }
 
-.step.completed .step-num {
-    background: var(--success);
-    color: #fff;
+.graph-node.completed .node-icon {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
-.step-text {
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.step-divider {
+.node-content {
     flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    min-width: 0;
+}
+
+.node-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.node-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.node-status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+}
+
+.graph-node.active .node-status-badge {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--accent);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.graph-node.completed .node-status-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.node-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    margin-bottom: 0.35rem;
+}
+
+.node-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.graph-node.active .node-meta {
+    color: var(--accent);
+}
+
+.graph-node.completed .node-meta {
+    color: var(--success);
+}
+
+/* Connectors */
+.graph-split-connector, .graph-join-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    position: relative;
+    padding: 0.4rem 0;
+    z-index: 1;
+}
+
+.connector-fork-label, .connector-join-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px dashed rgba(56, 189, 248, 0.3);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+.connector-join-label {
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.connector-vertical-arrow {
+    text-align: center;
+    color: var(--accent);
+    font-size: 1.1rem;
+    opacity: 0.6;
+    margin: -0.25rem 0;
+}
+
+/* Parallel Grid */
+.graph-parallel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .graph-parallel-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.graph-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.branch-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.branch-spacer {
+    flex: 1;
+}
+
+.branch-summary-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 
 /* Metrics Grid */

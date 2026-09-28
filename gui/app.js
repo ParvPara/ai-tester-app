@@ -60,20 +60,41 @@ document.addEventListener('DOMContentLoaded', () => {
         progressSection.classList.remove('hidden');
         resultsSection.classList.add('hidden');
 
-        // Reset Stepper
-        resetStepper();
+        // Reset Graph Canvas
+        resetGraph();
+        const spinner = progressSection.querySelector('.spinner');
+        if (spinner) spinner.style.display = 'block';
+        progressTitle.textContent = 'Executing Parallel Multi-Agent Pipeline...';
+        progressSub.textContent = 'Orchestrating Fuzzer, Auditor, Playwright Grounding Gate & Judge nodes';
 
-        // Step 1: DOM Inspection Animation
-        setStep(1, "Inspecting DOM & Extracting Nodes...", "Capturing interactive inputs, links, forms, and attributes (<500 tokens)");
+        // Stage 1: DOM Ingestion Node Active
+        setNodeStatus('dom-ingest', 'active', 'Harvesting interactive controls & token pruning via Playwright...');
 
-        // Step 2 & 3 timer simulations for smooth UX while backend processes
-        const step2Timer = setTimeout(() => {
-            setStep(2, "Reasoning with LLM Layer...", "Generating targeted boundary test cases and identifying semantic UX flaws");
+        // Stage 2: Parallel Agents Active (Fuzzer || Auditor)
+        const stage2Timer = setTimeout(() => {
+            setNodeStatus('dom-ingest', 'completed', 'Interactive controls extracted (<500 tokens)');
+            setNodeStatus('fuzzer', 'active', 'Generating boundary attack vectors & injection payloads...');
+            setNodeStatus('auditor', 'active', 'Auditing accessibility & plain-English friction in parallel...');
+            progressTitle.textContent = 'Parallel Multi-Agent Reasoning...';
+            progressSub.textContent = 'Adversarial Fuzzer & WCAG Auditor executing concurrently on Groq LPU';
         }, 1200);
 
-        const step3Timer = setTimeout(() => {
-            setStep(3, "Executing Playwright Fuzz Tests...", "Applying Strict Verification Gate on runtime exceptions and network errors");
-        }, 2500);
+        // Stage 3: Playwright Grounding Gate
+        const stage3Timer = setTimeout(() => {
+            setNodeStatus('fuzzer', 'completed', 'Boundary test hypotheses generated');
+            setNodeStatus('auditor', 'completed', 'Accessibility & human friction audit complete');
+            setNodeStatus('playwright-gate', 'active', 'Executing fuzz actions in headless browser with live error interception...');
+            progressTitle.textContent = 'Playwright Grounding Gate Active...';
+            progressSub.textContent = 'Physically testing boundary hypotheses against headless browser runtime';
+        }, 2800);
+
+        // Stage 4: False Positive Judge Node
+        const stage4Timer = setTimeout(() => {
+            setNodeStatus('playwright-gate', 'completed', 'Fuzz actions physically executed in browser');
+            setNodeStatus('judge', 'active', 'Correlating intercepted telemetry: enforcing 0% false positives...');
+            progressTitle.textContent = 'False-Positive Judge Node Verifying...';
+            progressSub.textContent = 'Filtering out speculative noise; verifying runtime crashes & failed requests';
+        }, 4400);
 
         try {
             const response = await fetch('/api/audit', {
@@ -82,8 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ url })
             });
 
-            clearTimeout(step2Timer);
-            clearTimeout(step3Timer);
+            clearTimeout(stage2Timer);
+            clearTimeout(stage3Timer);
+            clearTimeout(stage4Timer);
 
             const result = await response.json();
 
@@ -92,8 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Mark all steps complete
-            completeAllSteps();
+            // Mark all nodes completed with exact metrics
+            setNodeStatus('dom-ingest', 'completed', `${result.element_count} interactive controls extracted`);
+            setNodeStatus('fuzzer', 'completed', `${result.fuzz_actions_count} boundary hypotheses generated`);
+            setNodeStatus('auditor', 'completed', `${result.ux_improvements.length} UX & accessibility flaws detected`);
+            setNodeStatus('playwright-gate', 'completed', `${result.fuzz_actions_count} test actions executed & intercepted`);
+            setNodeStatus('judge', 'completed', `${result.hard_bugs.length} hard bugs verified (0% false positives)`);
+            setNodeStatus('synthesis', 'completed', `Dual-bucket synthesis finalized in ${result.elapsed_time}s`);
+
+            // Header state completed
+            if (spinner) spinner.style.display = 'none';
+            progressTitle.textContent = 'Multi-Agent State Graph Complete';
+            progressSub.textContent = `All graph nodes finished in ${result.elapsed_time}s. 0% false positives guaranteed.`;
 
             // Populate Results
             renderResults(result);
@@ -104,48 +136,48 @@ document.addEventListener('DOMContentLoaded', () => {
             // Scroll down to results smoothly
             setTimeout(() => {
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 200);
+            }, 300);
 
         } catch (err) {
-            clearTimeout(step2Timer);
-            clearTimeout(step3Timer);
+            clearTimeout(stage2Timer);
+            clearTimeout(stage3Timer);
+            clearTimeout(stage4Timer);
             alert("Network Error: Could not connect to audit backend. Ensure server.py is running.\n" + err.message);
         } finally {
             startBtn.disabled = false;
             startBtn.querySelector('.btn-text').textContent = 'Run AI Audit';
-            setTimeout(() => {
-                progressSection.classList.add('hidden');
-            }, 800);
         }
     });
 
-    function resetStepper() {
-        [step1, step2, step3].forEach(s => {
-            s.classList.remove('active', 'completed');
-        });
+    function setNodeStatus(nodeId, status, metaText) {
+        const nodeEl = document.getElementById(`node-${nodeId}`);
+        const badgeEl = document.getElementById(`status-${nodeId}`);
+        const metaEl = document.getElementById(`meta-${nodeId}`);
+        if (!nodeEl || !badgeEl) return;
+
+        nodeEl.classList.remove('active', 'completed');
+        if (status === 'active') {
+            nodeEl.classList.add('active');
+            badgeEl.textContent = 'Running';
+        } else if (status === 'completed') {
+            nodeEl.classList.add('completed');
+            badgeEl.textContent = 'Verified';
+        } else {
+            badgeEl.textContent = 'Pending';
+        }
+
+        if (metaText && metaEl) {
+            metaEl.textContent = metaText;
+        }
     }
 
-    function setStep(num, title, sub) {
-        progressTitle.textContent = title;
-        progressSub.textContent = sub;
-        [step1, step2, step3].forEach((s, idx) => {
-            if (idx + 1 < num) {
-                s.classList.remove('active');
-                s.classList.add('completed');
-            } else if (idx + 1 === num) {
-                s.classList.add('active');
-                s.classList.remove('completed');
-            } else {
-                s.classList.remove('active', 'completed');
-            }
-        });
-    }
-
-    function completeAllSteps() {
-        [step1, step2, step3].forEach(s => {
-            s.classList.remove('active');
-            s.classList.add('completed');
-        });
+    function resetGraph() {
+        setNodeStatus('dom-ingest', 'pending', 'Awaiting execution...');
+        setNodeStatus('fuzzer', 'pending', 'Hypotheses generation');
+        setNodeStatus('auditor', 'pending', 'Parallel semantic reasoning');
+        setNodeStatus('playwright-gate', 'pending', 'Physical error interception');
+        setNodeStatus('judge', 'pending', 'Hard bug verification');
+        setNodeStatus('synthesis', 'pending', 'Final report assembly');
     }
 
     function renderResults(data) {

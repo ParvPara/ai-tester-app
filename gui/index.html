@@ -56,29 +56,134 @@
                 </div>
             </section>
 
-            <!-- Progress / Loading Stepper Card -->
+            <!-- Interactive Multi-Agent State Graph Panel -->
             <section id="progress-section" class="panel progress-panel hidden">
                 <div class="stepper-header">
                     <div class="spinner"></div>
                     <div>
-                        <h3 id="progress-title">Running Deterministic AI Audit...</h3>
-                        <p id="progress-sub" class="subtitle">Inspecting DOM elements and attaching telemetry listeners</p>
+                        <div class="agent-graph-badge">Multi-Agent State Graph</div>
+                        <h3 id="progress-title">Executing Parallel Multi-Agent Pipeline...</h3>
+                        <p id="progress-sub" class="subtitle">Orchestrating Fuzzer, Auditor, Playwright Grounding Gate & Judge nodes</p>
                     </div>
                 </div>
-                <div class="step-indicators">
-                    <div class="step active" id="step-1">
-                        <div class="step-num">1</div>
-                        <div class="step-text">DOM Pruning & Extraction</div>
+
+                <!-- Visual Graph Canvas -->
+                <div class="agent-graph-canvas">
+                    <!-- Root Node: DOM Ingestion -->
+                    <div class="graph-row">
+                        <div class="graph-node" id="node-dom-ingest">
+                            <div class="node-icon">🌐</div>
+                            <div class="node-content">
+                                <div class="node-header">
+                                    <span class="node-name">DOM Ingestion Node</span>
+                                    <span class="node-status-badge" id="status-dom-ingest">Pending</span>
+                                </div>
+                                <div class="node-desc">Playwright Chromium headless DOM extraction & token pruning</div>
+                                <div class="node-meta" id="meta-dom-ingest">Awaiting execution...</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="step-divider"></div>
-                    <div class="step" id="step-2">
-                        <div class="step-num">2</div>
-                        <div class="step-text">LLM Edge-Case Reasoning</div>
+
+                    <!-- Branching Connector -->
+                    <div class="graph-split-connector">
+                        <div class="connector-line left-branch"></div>
+                        <div class="connector-fork-label">PARALLEL THREADPOOL DISPATCH</div>
+                        <div class="connector-line right-branch"></div>
                     </div>
-                    <div class="step-divider"></div>
-                    <div class="step" id="step-3">
-                        <div class="step-num">3</div>
-                        <div class="step-text">Playwright Fuzz Execution</div>
+
+                    <!-- Parallel Columns: Fuzzer/Gate/Judge on Left, Auditor on Right -->
+                    <div class="graph-parallel-grid">
+                        <!-- Left Branch: Fuzzing & Verification Pipeline -->
+                        <div class="graph-branch">
+                            <div class="branch-label">🔴 Adversarial Fuzzing & Verification Pipeline</div>
+
+                            <!-- Node 2a: Fuzzer Agent -->
+                            <div class="graph-node" id="node-fuzzer">
+                                <div class="node-icon">⚡</div>
+                                <div class="node-content">
+                                    <div class="node-header">
+                                        <span class="node-name">Adversarial Fuzzer Agent</span>
+                                        <span class="node-status-badge" id="status-fuzzer">Pending</span>
+                                    </div>
+                                    <div class="node-desc">Groq LPU (GPT-OSS-120B) boundary attack vectors & injection payloads</div>
+                                    <div class="node-meta" id="meta-fuzzer">Hypotheses generation</div>
+                                </div>
+                            </div>
+
+                            <div class="connector-vertical-arrow">↓</div>
+
+                            <!-- Node 3: Playwright Grounding Gate -->
+                            <div class="graph-node" id="node-playwright-gate">
+                                <div class="node-icon">🛡️</div>
+                                <div class="node-content">
+                                    <div class="node-header">
+                                        <span class="node-name">Playwright Grounding Gate</span>
+                                        <span class="node-status-badge" id="status-playwright-gate">Pending</span>
+                                    </div>
+                                    <div class="node-desc">Headless browser action execution with live runtime & network telemetry</div>
+                                    <div class="node-meta" id="meta-playwright-gate">Physical error interception</div>
+                                </div>
+                            </div>
+
+                            <div class="connector-vertical-arrow">↓</div>
+
+                            <!-- Node 4: False Positive Judge -->
+                            <div class="graph-node" id="node-judge">
+                                <div class="node-icon">⚖️</div>
+                                <div class="node-content">
+                                    <div class="node-header">
+                                        <span class="node-name">False-Positive Judge Node</span>
+                                        <span class="node-status-badge" id="status-judge">Pending</span>
+                                    </div>
+                                    <div class="node-desc">Strict correlation gate: discards speculative findings (0% false positives)</div>
+                                    <div class="node-meta" id="meta-judge">Hard bug verification</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Branch: Human Experience & Accessibility Audit -->
+                        <div class="graph-branch">
+                            <div class="branch-label">🟡 Human Experience & Usability Pipeline</div>
+
+                            <!-- Node 2b: WCAG & UX Auditor Agent -->
+                            <div class="graph-node" id="node-auditor">
+                                <div class="node-icon">👁️</div>
+                                <div class="node-content">
+                                    <div class="node-header">
+                                        <span class="node-name">WCAG & UX Auditor Agent</span>
+                                        <span class="node-status-badge" id="status-auditor">Pending</span>
+                                    </div>
+                                    <div class="node-desc">Evaluates screen-reader barriers, missing labels, and plain-English human friction</div>
+                                    <div class="node-meta" id="meta-auditor">Parallel semantic reasoning</div>
+                                </div>
+                            </div>
+
+                            <div class="branch-spacer"></div>
+                            <div class="branch-summary-pill">
+                                <span>⚡ Runs concurrently with Fuzzer to cut audit latency by 50%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Convergence Connector -->
+                    <div class="graph-join-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-join-label">TELEMETRY & UX SYNTHESIS</div>
+                    </div>
+
+                    <!-- Synthesis Node -->
+                    <div class="graph-row">
+                        <div class="graph-node" id="node-synthesis">
+                            <div class="node-icon">📊</div>
+                            <div class="node-content">
+                                <div class="node-header">
+                                    <span class="node-name">Dual-Bucket Synthesis Node</span>
+                                    <span class="node-status-badge" id="status-synthesis">Pending</span>
+                                </div>
+                                <div class="node-desc">Compiles verified Hard Bugs with reproduction steps & plain-English UX report</div>
+                                <div class="node-meta" id="meta-synthesis">Final report assembly</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
