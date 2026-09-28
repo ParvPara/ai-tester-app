@@ -8,9 +8,7 @@ import socketserver
 import urllib.request
 import webbrowser
 from tester.config import DEFAULT_TARGET_URL
-from tester.browser import inspect_page
-from tester.llm import analyze_dom_with_llm
-from tester.runner import execute_fuzz_tests
+from tester.graph import run_multi_agent_pipeline
 from tester.reporter import render_terminal_report, generate_html_report
 from server import run_gui_server
 
@@ -46,30 +44,15 @@ def start_local_target_server(port: int = 8000, directory: str = "target-app"):
     print(f"🚀 Started local demo server at http://127.0.0.1:{port} serving '{directory}/'")
 
 def run_cli_audit(target_url: str, output_path: str = "report.html", force_serve: bool = False):
-    """Runs the direct terminal CLI pipeline."""
+    """Runs the direct multi-agent state graph pipeline in CLI mode."""
     if ("localhost:8000" in target_url or "127.0.0.1:8000" in target_url or force_serve):
         if not is_server_running(target_url):
             start_local_target_server(8000, "target-app")
 
-    start_time = time.time()
+    state = run_multi_agent_pipeline(target_url)
 
-    print(f"\n🔍 Step 1/3: Launching headless browser against {target_url}...")
-    dom_elements, _ = inspect_page(target_url)
-    print(f"   ✓ Extracted {len(dom_elements)} sanitized interactive elements (< 500 tokens).")
-
-    print("\n🧠 Step 2/3: Analyzing DOM semantics with LLM reasoning layer...")
-    audit = analyze_dom_with_llm(dom_elements)
-    print(f"   ✓ Generated {len(audit.fuzz_actions)} targeted boundary test cases.")
-    print(f"   ✓ Identified {len(audit.ux_improvements)} accessibility/UX improvements.")
-
-    print("\n⚡ Step 3/3: Executing boundary actions via Playwright & applying verification gate...")
-    hard_bugs, ux_improvements = execute_fuzz_tests(target_url, audit)
-    print(f"   ✓ Fuzz execution complete. Verified Hard Bugs: {len(hard_bugs)}.")
-
-    elapsed = time.time() - start_time
-
-    render_terminal_report(hard_bugs, ux_improvements, elapsed, target_url)
-    generate_html_report(hard_bugs, ux_improvements, elapsed, target_url, output_path)
+    render_terminal_report(state.hard_bugs, state.ux_improvements, state.elapsed_time, target_url)
+    generate_html_report(state.hard_bugs, state.ux_improvements, state.elapsed_time, target_url, output_path)
 
 def main():
     parser = argparse.ArgumentParser(description="AI App Tester - Deterministic Browser QA & Fuzzing Engine")
