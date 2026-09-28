@@ -16,14 +16,15 @@ ai-app-tester/
 │   └── app.js           # Dynamic graph controller & dual-bucket executive report renderer
 ├── server.py            # Local REST API server & static GUI server (127.0.0.1)
 ├── target-app/
-│   ├── index.html       # Standalone checkout app seeded with intentional boundary & API bugs
-│   └── app.js           # Client-side logic with uncaught exceptions & broken API endpoints
+│   ├── index.html       # Storefront catalog with boundary quantity and accessibility flaws
+│   ├── cart.html        # Shopping cart with promo & shipping rate HTTP 404 endpoints
+│   └── checkout.html    # Express checkout with script injection DOMException & cargo overflow
 ├── tester/
 │   ├── __init__.py      # Package initialization
 │   ├── config.py        # Environment settings (Groq LPU / OpenAI / Offline fallback)
 │   ├── schema.py        # Pydantic models (AgentState, FuzzAction, HardBug, UXImprovement)
-│   ├── browser.py       # Playwright telemetry harness & sanitized DOM extractor (<500 tokens)
-│   ├── graph.py         # Parallel Multi-Agent State Graph Orchestrator
+│   ├── browser.py       # Playwright telemetry harness & same-origin route discovery (<500 tokens)
+│   ├── graph.py         # Parallel Multi-Agent State Graph Orchestrator (Multi-Route Sweep)
 │   ├── agents/          # Specialized Multi-Agent System Nodes
 │   │   ├── __init__.py
 │   │   ├── fuzzer.py    # Adversarial Fuzzing Agent (boundary & injection attack vectors)
@@ -41,14 +42,16 @@ ai-app-tester/
 
 ## ⚡ Key Design Rationale
 
-1. **Parallel Multi-Agent State Graph**:
-   - Instead of a single sequential prompt, testing is distributed across specialized agent nodes:
-     - **🌐 DOM Ingestion Node**: Headless Playwright DOM harvest & token pruning (<500 tokens).
+1. **Parallel Multi-Agent State Graph & Black-Box Multi-Route Sweep**:
+   - The tester operates **strictly as a black-box HTTP client**; it never touches or imports the target app's source code.
+   - Starting from any target URL, the engine discovers same-origin navigation routes (e.g. Catalog ➔ Cart ➔ Checkout) directly from the live DOM over HTTP.
+   - Specialized agent nodes run concurrently:
+     - **🌐 DOM Ingestion Node**: Headless Playwright DOM harvest & token pruning (<500 tokens per route).
      - **⚡ Adversarial Fuzzer Agent**: Specialized in numeric boundaries, SQLi/XSS, and API endpoint attack vectors.
-     - **👁️ WCAG & UX Auditor Agent**: Runs in **parallel** via thread pooling to audit accessibility, missing labels, and human friction concurrently (cutting LLM latency in half).
-     - **🛡️ Playwright Grounding Gate**: Physically executes fuzz actions in an isolated browser context, capturing runtime crashes and HTTP failures.
+     - **👁️ WCAG & UX Auditor Agent**: Runs in **parallel** via thread pooling across routes to audit accessibility and human friction concurrently.
+     - **🛡️ Playwright Grounding Gate**: Physically executes fuzz actions in isolated browser contexts, capturing runtime crashes and HTTP failures across routes.
      - **⚖️ False-Positive Judge Node**: Correlates telemetry against proposed actions, strictly rejecting unverified hypotheses to guarantee **0% false positives**.
-     - **📊 Dual-Bucket Synthesis**: Assembles actionable reports split into verified Hard Bugs vs. Plain-English UX improvements.
+     - **📊 Dual-Bucket Synthesis**: Assembles route-badged reports split into verified Hard Bugs vs. Plain-English UX improvements.
 
 2. **Plain-English Executive Summaries (Non-Engineer Friendly)**:
    - For every verified Hard Bug, the report produces:
