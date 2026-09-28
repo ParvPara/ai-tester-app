@@ -17,6 +17,7 @@ class UXImprovement(BaseModel):
     issue: str = Field(description="Clear description of the accessibility or UX design defect in plain English.")
     impact_rationale: str = Field(default="", description="Explanation of why this issue matters and the negative user impact, friction, or confusion it causes.")
     suggested_fix: str = Field(description="Concrete developer recommendation or code fix to resolve the issue.")
+    page_url: str = Field(default="", description="The specific URL path where this UX issue was identified.")
 
 class FuzzerOutput(BaseModel):
     """Output schema strictly for the Adversarial Fuzzer Agent node."""
@@ -44,10 +45,12 @@ class HardBug(BaseModel):
     user_scenario: str = Field(default="", description="Plain English real-world user scenario that causes this defect.")
     business_impact: str = Field(default="", description="Plain English customer and business consequence if left unfixed.")
     reproduction_steps: List[str]
+    page_url: str = Field(default="", description="The specific URL where this hard bug was triggered.")
 
 class AgentState(BaseModel):
     """State graph shared memory tracking multi-agent execution."""
     target_url: str
+    audited_routes: List[str] = Field(default_factory=list, description="All same-origin routes audited in the flow.")
     dom_elements: List[Dict[str, Any]] = Field(default_factory=list)
     fuzz_actions: List[FuzzAction] = Field(default_factory=list)
     ux_improvements: List[UXImprovement] = Field(default_factory=list)
@@ -55,3 +58,4 @@ class AgentState(BaseModel):
     active_node: Optional[str] = None
     completed_nodes: List[str] = Field(default_factory=list)
     elapsed_time: float = 0.0
+

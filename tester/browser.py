@@ -114,10 +114,47 @@ def extract_sanitized_dom(page: Page) -> List[Dict[str, Any]]:
     return elements_data
 
 
-def inspect_page(target_url: str) -> Tuple[List[Dict[str, Any]], BrowserTelemetry]:
+def extract_same_origin_routes(page: Page, base_url: str, max_routes: int = 3) -> List[str]:
+    """
+    Extracts unique same-origin navigation routes directly from the live DOM via Playwright.
+    Pure black-box discovery strictly over HTTP; zero access to backend source files.
+    """
+    import urllib.parse
+    base_parsed = urllib.parse.urlparse(base_url)
+    base_netloc = base_parsed.netloc.lower()
+
+    raw_hrefs = page.evaluate("""
+        () => {
+            const anchors = Array.from(document.querySelectorAll('a[href]'));
+            return anchors.map(a => a.getAttribute('href')).filter(Boolean);
+        }
+    """)
+
+    discovered: List[str] = []
+    seen = {base_url.rstrip("/"), base_url}
+
+    for href in raw_hrefs:
+        href_str = str(href).strip()
+        if not href_str or href_str.startswith("#") or href_str.startswith("javascript:") or href_str.startswith("mailto:"):
+            continue
+
+        absolute_url = urllib.parse.urljoin(base_url, href_str).split("#")[0].rstrip("/")
+        parsed = urllib.parse.urlparse(absolute_url)
+
+        if parsed.netloc.lower() == base_netloc and absolute_url not in seen:
+            if not any(absolute_url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".pdf", ".zip"]):
+                seen.add(absolute_url)
+                discovered.append(absolute_url)
+                if len(discovered) >= max_routes:
+                    break
+
+    return discovered
+
+
+def inspect_page(target_url: str) -> Tuple[List[Dict[str, Any]], List[str], BrowserTelemetry]:
     """
     Launches Playwright Chromium, attaches telemetry listeners, navigates to target_url,
-    and returns extracted DOM items along with the telemetry instance.
+    and returns extracted DOM items, discovered same-origin routes, and telemetry.
     Uses domcontentloaded for high compatibility with modern sites (Shopify, SPAs).
     """
     telemetry = BrowserTelemetry()
@@ -142,6 +179,7 @@ def inspect_page(target_url: str) -> Tuple[List[Dict[str, Any]], BrowserTelemetr
             page.goto(target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
 
         dom_elements = extract_sanitized_dom(page)
+        discovered_routes = extract_same_origin_routes(page, target_url)
         browser.close()
 
-    return dom_elements, telemetry
+    return dom_elements, discovered_routes, telemetry
