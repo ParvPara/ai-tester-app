@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright, Error as PlaywrightError
 
 from tester.config import HEADLESS, BROWSER_TIMEOUT_MS
 from tester.schema import AgentState, FuzzAction, UXImprovement, HardBug
-from tester.browser import inspect_page, BrowserTelemetry
+from tester.browser import inspect_page, BrowserTelemetry, normalize_route_url
 from tester.agents.fuzzer import run_fuzzer_agent
 from tester.agents.auditor import run_auditor_agent
 from tester.agents.judge import evaluate_execution_telemetry
@@ -75,18 +75,23 @@ class AppTesterGraph:
         page_elements_map: Dict[str, List[Dict[str, Any]]] = {}
         all_dom_elements: List[Dict[str, Any]] = []
 
+        visited_norm = set()
+
         while routes_to_visit and len(visited_routes) < self.max_routes:
             current_url = routes_to_visit.pop(0)
-            if current_url in visited_routes:
+            norm_curr = normalize_route_url(current_url)
+            if norm_curr in visited_norm:
                 continue
 
             dom_elements, discovered_routes, _ = inspect_page(current_url)
+            visited_norm.add(norm_curr)
             visited_routes.append(current_url)
             page_elements_map[current_url] = dom_elements
             all_dom_elements.extend(dom_elements)
 
             for route in discovered_routes:
-                if route not in visited_routes and route not in routes_to_visit:
+                norm_r = normalize_route_url(route)
+                if norm_r not in visited_norm and not any(normalize_route_url(q) == norm_r for q in routes_to_visit):
                     if len(visited_routes) + len(routes_to_visit) < self.max_routes:
                         routes_to_visit.append(route)
 
@@ -168,14 +173,14 @@ class AppTesterGraph:
                 try:
                     try:
                         page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
-                        page.wait_for_timeout(300)
+                        page.wait_for_timeout(150)
                     except Exception:
                         page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
 
                     if action.action_type == "fill":
                         repro_steps.append(f"2. Fill input '{action.selector}' with payload: '{action.payload}'")
                         page.fill(action.selector, action.payload or "", timeout=2000)
-                        page.wait_for_timeout(200)
+                        page.wait_for_timeout(100)
 
                         # Trigger client-side validation by submitting the enclosing form if present
                         submit_btn = (
@@ -193,7 +198,7 @@ class AppTesterGraph:
                         repro_steps.append(f"2. Click element '{action.selector}'")
                         page.click(action.selector, timeout=2000)
 
-                    page.wait_for_timeout(500)
+                    page.wait_for_timeout(250)
 
                 except PlaywrightError:
                     pass

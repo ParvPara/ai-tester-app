@@ -21,6 +21,14 @@ def is_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
     except Exception:
         return False
 
+class QuietTCPServer(socketserver.TCPServer):
+    """Silences BrokenPipeError and ConnectionResetError when browsers abort requests."""
+    def handle_error(self, request, client_address):
+        exc_type, _, _ = sys.exc_info()
+        if exc_type in (BrokenPipeError, ConnectionResetError):
+            return
+        super().handle_error(request, client_address)
+
 def start_target_app_server(port: int = 8000):
     """Spins up background daemon server for the seeded demo app if not already running."""
     if is_port_in_use(port):
@@ -33,9 +41,9 @@ def start_target_app_server(port: int = 8000):
             pass
 
     def _run():
-        socketserver.TCPServer.allow_reuse_address = True
+        QuietTCPServer.allow_reuse_address = True
         try:
-            with socketserver.TCPServer(("127.0.0.1", port), TargetHandler) as httpd:
+            with QuietTCPServer(("127.0.0.1", port), TargetHandler) as httpd:
                 httpd.serve_forever()
         except Exception:
             pass
@@ -119,11 +127,11 @@ class GUIRequestHandler(http.server.SimpleHTTPRequestHandler):
 def run_gui_server(gui_port: int = 5050):
     start_target_app_server(8000)
 
-    socketserver.TCPServer.allow_reuse_address = True
+    QuietTCPServer.allow_reuse_address = True
     port = gui_port
     while port < gui_port + 10:
         try:
-            httpd = socketserver.TCPServer(("127.0.0.1", port), GUIRequestHandler)
+            httpd = QuietTCPServer(("127.0.0.1", port), GUIRequestHandler)
             break
         except OSError:
             port += 1

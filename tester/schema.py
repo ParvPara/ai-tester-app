@@ -9,6 +9,7 @@ class FuzzAction(BaseModel):
     rationale: str = Field(description="Plain English explanation of what is being tested and why.")
     user_scenario: str = Field(default="", description="Plain English scenario of what a real human user would do to trigger this condition.")
     business_impact: str = Field(default="", description="Plain English explanation of how this bug hurts the user experience or business (e.g. checkout freeze, lost sale).")
+    page_url: str = Field(default="", description="The specific URL route where this action should be executed.")
 
 class UXImprovement(BaseModel):
     """Represents a semantic, accessibility, or layout flaw detected by the WCAG & UX Auditor Agent."""

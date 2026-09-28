@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioGear Store - Catalog</title>
+    <title>AudioGear Direct - Storefront Catalog</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -11,29 +11,29 @@
             color: #f8fafc;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             min-height: 100vh;
         }
         .navbar {
-            width: 100%;
             background: #1e293b;
             border-bottom: 1px solid #334155;
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-sizing: border-box;
         }
         .brand {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 700;
             color: #38bdf8;
             text-decoration: none;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
         }
         .nav-link {
             color: #94a3b8;
@@ -44,98 +44,177 @@
             background: rgba(255, 255, 255, 0.05);
             transition: all 0.2s;
         }
-        .nav-link:hover {
+        .nav-link:hover, .nav-link.active {
             color: #fff;
             background: rgba(56, 189, 248, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.4);
         }
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: #1e293b;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            margin: 3rem auto;
-            box-sizing: border-box;
+        .hero {
+            text-align: center;
+            padding: 3rem 1rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
         }
-        h2 { margin-top: 0; color: #f8fafc; }
+        .hero h1 { font-size: 2.2rem; margin-bottom: 0.5rem; color: #fff; }
+        .hero p { color: #94a3b8; font-size: 1.1rem; }
+        .step-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 1rem 0 2.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .step-item { color: #64748b; }
+        .step-item.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 4px; }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            max-width: 960px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
         .product-card {
+            background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 1.25rem;
-            background: #0f172a;
-            margin-bottom: 1.5rem;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-        .product-price {
-            font-size: 1.3rem;
-            font-weight: 700;
+        .product-badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.15);
             color: #38bdf8;
-            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
         }
-        .form-group { margin-bottom: 1.25rem; }
-        input[type="number"], input[type="text"] {
+        .product-title { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.5rem; }
+        .product-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.4; margin-bottom: 1rem; }
+        .product-price { font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-bottom: 1rem; }
+        input[type="number"] {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.65rem;
             border-radius: 6px;
             border: 1px solid #334155;
-            background: #1e293b;
+            background: #0f172a;
             color: #fff;
+            margin-bottom: 0.75rem;
             box-sizing: border-box;
             font-size: 0.95rem;
         }
-        button {
+        button, .btn-action {
             width: 100%;
-            padding: 0.85rem;
+            padding: 0.75rem;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.95rem;
-            background: #0284c7;
-            color: white;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            text-align: center;
+            text-decoration: none;
+            display: block;
         }
-        button:hover { opacity: 0.9; }
-        .status-msg {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 6px;
-            display: none;
-            font-size: 0.85rem;
+        .btn-primary { background: #0284c7; color: white; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .bottom-nav {
+            text-align: center;
+            max-width: 960px;
+            margin: 0 auto 4rem;
+            padding: 1.5rem;
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
         }
-        .error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+        .status-msg { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; font-size: 0.9rem; }
         .success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
-        .header-icon { width: 36px; height: 36px; }
+        .header-icon { width: 32px; height: 32px; }
     </style>
 </head>
 <body>
     <header class="navbar">
-        <a href="/index.html" class="brand">
-            <!-- Seeded Accessibility Bug: Missing alt tag on image icon -->
+        <a href="/" class="brand">
+            <!-- Seeded Accessibility Bug: Missing alt tag on brand logo -->
             <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon">
             <span>AudioGear Direct</span>
         </a>
-        <a href="/cart.html" id="nav-cart-btn" class="nav-link">Shopping Cart (🛒)</a>
+        <nav class="nav-links">
+            <a href="/" class="nav-link active">1. Catalog</a>
+            <a href="/cart.html" id="nav-cart-btn" class="nav-link">2. Shopping Cart (🛒)</a>
+            <a href="/checkout.html" id="nav-checkout-btn" class="nav-link">3. Checkout (💳)</a>
+        </nav>
     </header>
 
-    <main class="container">
-        <h2>Premium Audio Store</h2>
+    <div class="hero">
+        <div class="step-bar">
+            <span class="step-item active">Step 1: Storefront Catalog</span>
+            <span class="step-item">Step 2: Cart Review</span>
+            <span class="step-item">Step 3: Express Checkout</span>
+        </div>
+        <h1>Studio-Grade Audio Equipment</h1>
+        <p>Explore our premium product line with direct-to-consumer express delivery.</p>
+    </div>
+
+    <main class="product-grid">
+        <!-- Product 1: Primary Featured Item (With Seeded Boundary Crash) -->
         <div class="product-card">
-            <div class="product-price">$199.00</div>
-            <h3>Quantum ANC Wireless Headphones</h3>
-            <p style="color: #94a3b8; font-size: 0.9rem;">Studio-grade acoustic transparency with active hybrid cancellation.</p>
+            <div>
+                <span class="product-badge">BEST SELLER</span>
+                <h3 class="product-title">Quantum ANC Pro Headphones</h3>
+                <p class="product-desc">Hybrid active noise cancellation with 40-hour battery life and custom planar drivers.</p>
+            </div>
+            <div>
+                <div class="product-price">$199.00</div>
+                <form id="catalog-order-form">
+                    <!-- Seeded Accessibility Bug: Missing label tag on item-quantity -->
+                    <input type="number" id="item-quantity" placeholder="Enter quantity" value="1">
+                    <button type="submit" id="add-to-cart-btn" class="btn-primary">Add to Cart</button>
+                </form>
+                <div id="status-message" class="status-msg"></div>
+            </div>
         </div>
 
-        <form id="catalog-order-form">
-            <div class="form-group">
-                <!-- Seeded Accessibility Bug: Missing label tag on item-quantity -->
-                <input type="number" id="item-quantity" placeholder="Enter quantity to purchase" value="1">
+        <!-- Product 2: Secondary Item -->
+        <div class="product-card">
+            <div>
+                <span class="product-badge">ACCESSORY</span>
+                <h3 class="product-title">Studio Master Keyboard</h3>
+                <p class="product-desc">Hot-swappable mechanical switches with custom dampening foam and RGB backlighting.</p>
             </div>
-            <button type="submit" id="add-to-cart-btn">Add to Cart & Checkout</button>
-        </form>
+            <div>
+                <div class="product-price">$149.00</div>
+                <button type="button" id="buy-keyboard-btn" class="btn-secondary" onclick="alert('Added Studio Master Keyboard to Cart!')">Add to Cart</button>
+            </div>
+        </div>
 
-        <div id="status-message" class="status-msg"></div>
+        <!-- Product 3: Third Item -->
+        <div class="product-card">
+            <div>
+                <span class="product-badge">ERGONOMIC</span>
+                <h3 class="product-title">Precision Wireless Mouse</h3>
+                <p class="product-desc">Ultra-lightweight 58g shell with 26,000 DPI optical sensor and 8000Hz polling rate.</p>
+            </div>
+            <div>
+                <div class="product-price">$59.00</div>
+                <button type="button" id="buy-mouse-btn" class="btn-secondary" onclick="alert('Added Precision Wireless Mouse to Cart!')">Add to Cart</button>
+            </div>
+        </div>
     </main>
+
+    <div class="bottom-nav">
+        <h3>Ready to complete your purchase?</h3>
+        <p style="color: #94a3b8; margin-bottom: 1.5rem;">Review your selected items and apply promotional discount vouchers.</p>
+        <a href="/cart.html" id="view-cart-link" class="btn-action btn-primary" style="max-width: 320px; margin: 0 auto;">View Shopping Cart (Step 2) ➔</a>
+    </div>
 
     <script>
         document.getElementById('catalog-order-form').addEventListener('submit', (e) => {
@@ -151,9 +230,7 @@
 
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg success';
-            statusMsg.innerHTML = "Added " + quantity + " item(s) to cart! <a href='/cart.html' style='color:#38bdf8;font-weight:bold;'>Go to Cart ➔</a>";
-            
-            // Persist quantity in localStorage for next page
+            statusMsg.innerHTML = "Added " + quantity + " item(s) to cart! <a href='/cart.html' style='color:#38bdf8;font-weight:bold;'>Proceed to Cart ➔</a>";
             localStorage.setItem('cart_quantity', quantity);
         });
     </script>

@@ -118,19 +118,41 @@ def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
     try:
         print(f"[Agent: Fuzzer] Generating boundary attack vectors via {LLM_PROVIDER.upper()} ({LLM_MODEL})...")
         client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-        user_content = f"Interactive DOM Elements:\n{json.dumps(dom_elements, indent=2)}"
+        user_content = f"Interactive DOM Elements for boundary testing:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing the 'fuzz_actions' array."
 
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
-                {"role": "user", "content": user_content}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.0
-        )
-        raw_json = response.choices[0].message.content
-        parsed = json.loads(raw_json)
+        try:
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.0
+            )
+            raw_json = response.choices[0].message.content
+        except Exception as api_err:
+            if "json_validate_failed" in str(api_err) or "400" in str(api_err):
+                # Fallback retry without strict response_format
+                response = client.chat.completions.create(
+                    model=LLM_MODEL,
+                    messages=[
+                        {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.0
+                )
+                raw_json = response.choices[0].message.content
+            else:
+                raise api_err
+
+        clean_json = raw_json.strip()
+        start_idx = clean_json.find("{")
+        end_idx = clean_json.rfind("}")
+        if start_idx != -1 and end_idx != -1:
+            clean_json = clean_json[start_idx:end_idx + 1]
+
+        parsed = json.loads(clean_json)
 
         # Normalize possible synonym keys
         if "fuzz_actions" not in parsed:
@@ -159,7 +181,8 @@ def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
                     ))
                     existing_click_selectors.add(sel)
 
-        return out.fuzz_actions
+        # Cap actions to top 4 highest-value actions per route to maintain <25s multi-page execution
+        return out.fuzz_actions[:4]
 
     except Exception as err:
         print(f"[Agent: Fuzzer Warning] Fuzzer agent encountered error ({err}). Using fallback.")

@@ -114,6 +114,19 @@ def extract_sanitized_dom(page: Page) -> List[Dict[str, Any]]:
     return elements_data
 
 
+def normalize_route_url(url: str) -> str:
+    """Normalizes URL by stripping fragments, queries, trailing slashes, and index.html aliases."""
+    import urllib.parse
+    parsed = urllib.parse.urlparse(url)
+    clean_path = parsed.path.rstrip("/")
+    for alias in ["/index.html", "/index.htm", "/index.php"]:
+        if clean_path.endswith(alias):
+            clean_path = clean_path[:-len(alias)].rstrip("/")
+            break
+    clean_url = f"{parsed.scheme}://{parsed.netloc}{clean_path}".rstrip("/")
+    return clean_url
+
+
 def extract_same_origin_routes(page: Page, base_url: str, max_routes: int = 3) -> List[str]:
     """
     Extracts unique same-origin navigation routes directly from the live DOM via Playwright.
@@ -122,6 +135,7 @@ def extract_same_origin_routes(page: Page, base_url: str, max_routes: int = 3) -
     import urllib.parse
     base_parsed = urllib.parse.urlparse(base_url)
     base_netloc = base_parsed.netloc.lower()
+    norm_base = normalize_route_url(base_url)
 
     raw_hrefs = page.evaluate("""
         () => {
@@ -131,19 +145,20 @@ def extract_same_origin_routes(page: Page, base_url: str, max_routes: int = 3) -
     """)
 
     discovered: List[str] = []
-    seen = {base_url.rstrip("/"), base_url}
+    seen = {norm_base, base_url.rstrip("/"), base_url}
 
     for href in raw_hrefs:
         href_str = str(href).strip()
         if not href_str or href_str.startswith("#") or href_str.startswith("javascript:") or href_str.startswith("mailto:"):
             continue
 
-        absolute_url = urllib.parse.urljoin(base_url, href_str).split("#")[0].rstrip("/")
+        absolute_url = urllib.parse.urljoin(base_url, href_str)
+        norm_url = normalize_route_url(absolute_url)
         parsed = urllib.parse.urlparse(absolute_url)
 
-        if parsed.netloc.lower() == base_netloc and absolute_url not in seen:
+        if parsed.netloc.lower() == base_netloc and norm_url not in seen:
             if not any(absolute_url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".pdf", ".zip"]):
-                seen.add(absolute_url)
+                seen.add(norm_url)
                 discovered.append(absolute_url)
                 if len(discovered) >= max_routes:
                     break

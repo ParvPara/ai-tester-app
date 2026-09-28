@@ -101,19 +101,40 @@ def run_auditor_agent(dom_elements: List[Dict[str, Any]]) -> List[UXImprovement]
     try:
         print(f"[Agent: Auditor] Auditing accessibility & UX via {LLM_PROVIDER.upper()} ({LLM_MODEL})...")
         client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-        user_content = f"Interactive DOM Elements for WCAG & Usability Audit:\n{json.dumps(dom_elements, indent=2)}"
+        user_content = f"Interactive DOM Elements for WCAG & Usability Audit:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing 'ux_improvements'."
 
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
-                {"role": "user", "content": user_content}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.1
-        )
-        raw_json = response.choices[0].message.content
-        parsed = json.loads(raw_json)
+        try:
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1
+            )
+            raw_json = response.choices[0].message.content
+        except Exception as api_err:
+            if "json_validate_failed" in str(api_err) or "400" in str(api_err):
+                response = client.chat.completions.create(
+                    model=LLM_MODEL,
+                    messages=[
+                        {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.1
+                )
+                raw_json = response.choices[0].message.content
+            else:
+                raise api_err
+
+        clean_json = raw_json.strip()
+        start_idx = clean_json.find("{")
+        end_idx = clean_json.rfind("}")
+        if start_idx != -1 and end_idx != -1:
+            clean_json = clean_json[start_idx:end_idx + 1]
+
+        parsed = json.loads(clean_json)
 
         # Normalize synonym keys
         if "ux_improvements" not in parsed:
