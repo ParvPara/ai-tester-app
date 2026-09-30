@@ -3,181 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioGear Direct - Storefront Catalog</title>
+    <title>KONTUR Acoustics — Hardware Catalog</title>
     <style>
+        :root {
+            --bg: #09090b;
+            --surface: #121215;
+            --surface-elevated: #18181b;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --text-main: #f4f4f5;
+            --text-muted: #71717a;
+            --text-dim: #52525b;
+            --accent: #e4e4e7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
         .navbar {
-            background: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            padding: 1.25rem 2.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .brand {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #38bdf8;
             text-decoration: none;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
         .nav-links {
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
             align-items: center;
         }
         .nav-link {
-            color: #94a3b8;
+            color: var(--text-muted);
             text-decoration: none;
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.4rem 0;
+            transition: color 0.15s ease;
         }
-        .nav-link:hover, .nav-link.active {
-            color: #fff;
-            background: rgba(56, 189, 248, 0.2);
-            border: 1px solid rgba(56, 189, 248, 0.4);
+        .nav-link:hover { color: var(--text-main); }
+        .nav-link.active {
+            color: var(--text-main);
+            border-bottom: 1px solid var(--text-main);
         }
         .hero {
             text-align: center;
-            padding: 3rem 1rem 2rem;
-            max-width: 800px;
+            padding: 3.5rem 1.5rem 2rem;
+            max-width: 720px;
             margin: 0 auto;
         }
-        .hero h1 { font-size: 2.2rem; margin-bottom: 0.5rem; color: #fff; }
-        .hero p { color: #94a3b8; font-size: 1.1rem; }
         .step-bar {
             display: flex;
             justify-content: center;
-            gap: 1.5rem;
-            margin: 1rem 0 2.5rem;
-            font-size: 0.9rem;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+        }
+        .step-item.active {
+            color: var(--text-main);
             font-weight: 600;
         }
-        .step-item { color: #64748b; }
-        .step-item.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 4px; }
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1.5rem;
-            max-width: 960px;
-            margin: 0 auto 3rem;
+            max-width: 1040px;
+            margin: 2rem auto 3rem;
             padding: 0 1.5rem;
         }
         .product-card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.75rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            transition: border-color 0.15s ease;
+        }
+        .product-card:hover {
+            border-color: var(--border-hover);
         }
         .product-badge {
             display: inline-block;
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
             margin-bottom: 0.75rem;
         }
-        .product-title { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.5rem; }
-        .product-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.4; margin-bottom: 1rem; }
-        .product-price { font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-bottom: 1rem; }
+        .product-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+        .product-desc {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            font-variant-numeric: tabular-nums;
+        }
         input[type="number"] {
             width: 100%;
-            padding: 0.65rem;
+            padding: 0.75rem 0.85rem;
             border-radius: 6px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: #fff;
+            border: 1px solid var(--border);
+            background: var(--surface-elevated);
+            color: var(--text-main);
             margin-bottom: 0.75rem;
-            box-sizing: border-box;
-            font-size: 0.95rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
         }
         button, .btn-action {
             width: 100%;
-            padding: 0.75rem;
-            border: none;
+            padding: 0.75rem 1rem;
             border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            letter-spacing: 0.01em;
+            transition: all 0.15s ease;
             box-sizing: border-box;
             text-align: center;
             text-decoration: none;
             display: block;
         }
-        .btn-primary { background: #0284c7; color: white; }
-        .btn-primary:hover { background: #0369a1; }
-        .btn-secondary { background: #334155; color: #e2e8f0; }
-        .btn-secondary:hover { background: #475569; }
+        .btn-primary {
+            background: #ffffff;
+            color: #09090b;
+            border: 1px solid #ffffff;
+        }
+        .btn-primary:hover {
+            background: #e4e4e7;
+            border-color: #e4e4e7;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--border-hover);
+        }
         .bottom-nav {
             text-align: center;
-            max-width: 960px;
-            margin: 0 auto 4rem;
-            padding: 1.5rem;
-            background: #1e293b;
-            border-radius: 12px;
-            border: 1px solid #334155;
+            max-width: 1040px;
+            margin: 0 auto 5rem;
+            padding: 2.5rem 1.5rem;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
-        .status-msg { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; font-size: 0.9rem; }
-        .success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
-        .header-icon { width: 32px; height: 32px; }
+        .bottom-nav h3 {
+            font-size: 1.15rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .bottom-nav p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .status-msg {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            display: none;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        .success {
+            background: rgba(16, 185, 129, 0.08);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .header-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <header class="navbar">
         <a href="/" class="brand">
-            <!-- Seeded Accessibility Bug: Missing alt tag on brand logo -->
-            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon">
-            <span>AudioGear Direct</span>
+            <!-- Seeded Accessibility Bug: Missing alt attribute on brand logo -->
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'><rect x='3' y='3' width='18' height='18' rx='2' stroke-width='2'/><circle cx='8.5' cy='8.5' r='1.5' fill='white'/><path d='M21 15l-5-5L5 21' stroke-width='2'/></svg>" class="header-icon">
+            <span>Kontur Acoustics</span>
         </a>
         <nav class="nav-links">
             <a href="/" class="nav-link active">1. Catalog</a>
-            <a href="/cart.html" id="nav-cart-btn" class="nav-link">2. Shopping Cart (🛒)</a>
-            <a href="/checkout.html" id="nav-checkout-btn" class="nav-link">3. Checkout (💳)</a>
+            <a href="/cart.html" id="nav-cart-btn" class="nav-link">2. Cart</a>
+            <a href="/checkout.html" id="nav-checkout-btn" class="nav-link">3. Checkout</a>
         </nav>
     </header>
 
     <div class="hero">
         <div class="step-bar">
-            <span class="step-item active">Step 1: Storefront Catalog</span>
-            <span class="step-item">Step 2: Cart Review</span>
-            <span class="step-item">Step 3: Express Checkout</span>
+            <span class="step-item active">01 / Catalog</span>
+            <span class="step-item">02 / Review</span>
+            <span class="step-item">03 / Checkout</span>
         </div>
-        <h1>Studio-Grade Audio Equipment</h1>
-        <p>Explore our premium product line with direct-to-consumer express delivery.</p>
+        <h1>Precision Acoustic Hardware</h1>
+        <p>Direct-engineered acoustic monitors and studio interface hardware.</p>
     </div>
 
     <main class="product-grid">
         <!-- Product 1: Primary Featured Item (With Seeded Boundary Crash) -->
         <div class="product-card">
             <div>
-                <span class="product-badge">BEST SELLER</span>
-                <h3 class="product-title">Quantum ANC Pro Headphones</h3>
-                <p class="product-desc">Hybrid active noise cancellation with 40-hour battery life and custom planar drivers.</p>
+                <span class="product-badge">Flagship</span>
+                <h3 class="product-title">Kontur-1 Reference Headphones</h3>
+                <p class="product-desc">Planar magnetic drivers with open-back acoustic chambers and calibrated response curve.</p>
             </div>
             <div>
                 <div class="product-price">$199.00</div>
                 <form id="catalog-order-form">
                     <!-- Seeded Accessibility Bug: Missing label tag on item-quantity -->
                     <input type="number" id="item-quantity" placeholder="Enter quantity" value="1">
-                    <button type="submit" id="add-to-cart-btn" class="btn-primary">Add to Cart</button>
+                    <button type="submit" id="add-to-cart-btn" class="btn-primary">Add to Order</button>
                 </form>
                 <div id="status-message" class="status-msg"></div>
             </div>
@@ -186,34 +277,34 @@
         <!-- Product 2: Secondary Item -->
         <div class="product-card">
             <div>
-                <span class="product-badge">ACCESSORY</span>
-                <h3 class="product-title">Studio Master Keyboard</h3>
-                <p class="product-desc">Hot-swappable mechanical switches with custom dampening foam and RGB backlighting.</p>
+                <span class="product-badge">Interface</span>
+                <h3 class="product-title">Kontur Mechanical Deck</h3>
+                <p class="product-desc">Low-profile CNC anodized aluminum controller with custom rotary encoders.</p>
             </div>
             <div>
                 <div class="product-price">$149.00</div>
-                <button type="button" id="buy-keyboard-btn" class="btn-secondary" onclick="alert('Added Studio Master Keyboard to Cart!')">Add to Cart</button>
+                <button type="button" id="buy-keyboard-btn" class="btn-secondary" onclick="alert('Added Kontur Mechanical Deck to order.')">Add to Order</button>
             </div>
         </div>
 
         <!-- Product 3: Third Item -->
         <div class="product-card">
             <div>
-                <span class="product-badge">ERGONOMIC</span>
-                <h3 class="product-title">Precision Wireless Mouse</h3>
-                <p class="product-desc">Ultra-lightweight 58g shell with 26,000 DPI optical sensor and 8000Hz polling rate.</p>
+                <span class="product-badge">Peripheral</span>
+                <h3 class="product-title">Kontur Precision Pointer</h3>
+                <p class="product-desc">Precision optical tracking instrument with 8000Hz polling rate and titanium switches.</p>
             </div>
             <div>
                 <div class="product-price">$59.00</div>
-                <button type="button" id="buy-mouse-btn" class="btn-secondary" onclick="alert('Added Precision Wireless Mouse to Cart!')">Add to Cart</button>
+                <button type="button" id="buy-mouse-btn" class="btn-secondary" onclick="alert('Added Kontur Precision Pointer to order.')">Add to Order</button>
             </div>
         </div>
     </main>
 
     <div class="bottom-nav">
-        <h3>Ready to complete your purchase?</h3>
-        <p style="color: #94a3b8; margin-bottom: 1.5rem;">Review your selected items and apply promotional discount vouchers.</p>
-        <a href="/cart.html" id="view-cart-link" class="btn-action btn-primary" style="max-width: 320px; margin: 0 auto;">View Shopping Cart (Step 2) ➔</a>
+        <h3>Proceed to Order Review</h3>
+        <p>Verify quantities, apply voucher codes, and calculate destination freight.</p>
+        <a href="/cart.html" id="view-cart-link" class="btn-action btn-primary" style="max-width: 260px; margin: 0 auto;">Review Cart (Step 2) ➔</a>
     </div>
 
     <script>
@@ -230,7 +321,7 @@
 
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg success';
-            statusMsg.innerHTML = "Added " + quantity + " item(s) to cart! <a href='/cart.html' style='color:#38bdf8;font-weight:bold;'>Proceed to Cart ➔</a>";
+            statusMsg.innerHTML = "Added " + quantity + " unit(s) to cart. <a href='/cart.html' style='color:#34d399;text-decoration:underline;margin-left:6px;'>Proceed to Cart ➔</a>";
             localStorage.setItem('cart_quantity', quantity);
         });
     </script>

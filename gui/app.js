@@ -7,9 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressSection = document.getElementById('progress-section');
     const progressTitle = document.getElementById('progress-title');
     const progressSub = document.getElementById('progress-sub');
-    const step1 = document.getElementById('step-1');
-    const step2 = document.getElementById('step-2');
-    const step3 = document.getElementById('step-3');
 
     const resultsSection = document.getElementById('results-section');
     const metricTime = document.getElementById('metric-time');
@@ -56,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // UI State: Running
         startBtn.disabled = true;
-        startBtn.querySelector('.btn-text').textContent = 'Auditing...';
+        startBtn.querySelector('.btn-text').textContent = 'Executing...';
         progressSection.classList.remove('hidden');
         resultsSection.classList.add('hidden');
 
@@ -64,19 +61,19 @@ document.addEventListener('DOMContentLoaded', () => {
         resetGraph();
         const spinner = progressSection.querySelector('.spinner');
         if (spinner) spinner.style.display = 'block';
-        progressTitle.textContent = 'Executing Parallel Multi-Agent Pipeline...';
-        progressSub.textContent = 'Orchestrating Fuzzer, Auditor, Playwright Grounding Gate & Judge nodes';
+        progressTitle.textContent = 'Executing Multi-Agent Graph...';
+        progressSub.textContent = 'Orchestrating DOM ingestion, parallel fuzzer/auditor threads, and grounding gate';
 
         // Stage 1: DOM Ingestion Node Active
-        setNodeStatus('dom-ingest', 'active', 'Harvesting interactive controls & token pruning via Playwright...');
+        setNodeStatus('dom-ingest', 'active', 'Harvesting interactive controls & discovering same-origin routes...');
 
         // Stage 2: Parallel Agents Active (Fuzzer || Auditor)
         const stage2Timer = setTimeout(() => {
             setNodeStatus('dom-ingest', 'completed', 'Interactive controls extracted (<500 tokens)');
             setNodeStatus('fuzzer', 'active', 'Generating boundary attack vectors & injection payloads...');
-            setNodeStatus('auditor', 'active', 'Auditing accessibility & plain-English friction in parallel...');
-            progressTitle.textContent = 'Parallel Multi-Agent Reasoning...';
-            progressSub.textContent = 'Adversarial Fuzzer & WCAG Auditor executing concurrently on Groq LPU';
+            setNodeStatus('auditor', 'active', 'Auditing accessibility & semantic friction in parallel...');
+            progressTitle.textContent = 'Parallel Agent Reasoning...';
+            progressSub.textContent = 'Adversarial Fuzzer and WCAG Auditor executing concurrently';
         }, 1200);
 
         // Stage 3: Playwright Grounding Gate
@@ -125,8 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Header state completed
             if (spinner) spinner.style.display = 'none';
-            progressTitle.textContent = 'Multi-Agent State Graph Complete';
-            progressSub.textContent = `All graph nodes finished in ${result.elapsed_time}s across ${routeCount} route(s). 0% false positives guaranteed.`;
+            progressTitle.textContent = 'Multi-Agent Graph Complete';
+            progressSub.textContent = `Completed in ${result.elapsed_time}s across ${routeCount} route(s). 0% false positives verified.`;
 
             // Populate Results
             renderResults(result);
@@ -146,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Network Error: Could not connect to audit backend. Ensure server.py is running.\n" + err.message);
         } finally {
             startBtn.disabled = false;
-            startBtn.querySelector('.btn-text').textContent = 'Run AI Audit';
+            startBtn.querySelector('.btn-text').textContent = 'Execute Audit';
         }
     });
 
@@ -190,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const routeCount = (data.audited_routes && data.audited_routes.length) ? data.audited_routes.length : 1;
         if (routeCount > 1) {
             const sub = metricElements.parentElement.querySelector('.metric-sub');
-            if (sub) sub.textContent = `${routeCount} Routes Swept`;
+            if (sub) sub.textContent = `${routeCount} routes swept`;
         }
 
         countBugs.textContent = data.hard_bugs.length;
@@ -198,16 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Render Hard Bugs
         if (data.hard_bugs.length === 0) {
-            hardBugsList.innerHTML = `<div class="empty-state">✨ Zero Hard Bugs Detected! All runtime exceptions & network checks passed.</div>`;
+            hardBugsList.innerHTML = `<div class="empty-state">No runtime defects detected. All boundary actions executed safely without unhandled exceptions.</div>`;
         } else {
-            hardBugsList.innerHTML = data.hard_bugs.map((bug, index) => {
+            hardBugsList.innerHTML = data.hard_bugs.map((bug) => {
                 const reproHtml = bug.reproduction_steps.map(step => `<li>${step}</li>`).join('');
                 return `
                     <div class="report-card bug">
                         <div class="card-top">
                             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                                 <h3>${bug.title}</h3>
-                                ${bug.page_url ? `<span class="route-badge">📍 ${escapeHtml(bug.page_url)}</span>` : ''}
+                                ${bug.page_url ? `<span class="route-badge">${escapeHtml(bug.page_url)}</span>` : ''}
                             </div>
                             <span class="badge badge-danger">${bug.severity}</span>
                         </div>
@@ -216,29 +213,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="plain-english-box">
                             ${bug.test_intent ? `
                             <div class="meta-row">
-                                <span class="tag-label">🎯 Test Intent</span>
+                                <span class="tag-label">Test Intent</span>
                                 <p>${escapeHtml(bug.test_intent)}</p>
                             </div>` : ''}
                             ${bug.user_scenario ? `
                             <div class="meta-row">
-                                <span class="tag-label">👤 User Scenario</span>
+                                <span class="tag-label">User Scenario</span>
                                 <p>${escapeHtml(bug.user_scenario)}</p>
                             </div>` : ''}
                             ${bug.business_impact ? `
                             <div class="meta-row impact">
-                                <span class="tag-label danger">📉 App & Business Impact</span>
+                                <span class="tag-label danger">Commercial & Business Impact</span>
                                 <p>${escapeHtml(bug.business_impact)}</p>
                             </div>` : ''}
                         </div>
 
                         <!-- Technical Developer Section -->
                         <div class="field-row" style="margin-top: 0.8rem;">
-                            <strong>Target Selector:</strong> <code>${escapeHtml(bug.selector)}</code> &nbsp;|&nbsp; <strong>Action:</strong> <code>${bug.action_type}</code> 
+                            <strong>Target:</strong> <code>${escapeHtml(bug.selector)}</code> &nbsp;|&nbsp; <strong>Action:</strong> <code>${bug.action_type}</code> 
                             ${bug.payload ? `(Payload: <code>${escapeHtml(bug.payload)}</code>)` : ''}
                         </div>
                         <div class="error-box">${escapeHtml(bug.error_message)}</div>
                         <div class="repro-steps">
-                            <h4>Developer Steps to Reproduce</h4>
+                            <h4>Reproduction Instructions</h4>
                             <ol>${reproHtml}</ol>
                         </div>
                     </div>
@@ -248,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Render UX Improvements
         if (data.ux_improvements.length === 0) {
-            uxImprovementsList.innerHTML = `<div class="empty-state">✨ Zero UX or accessibility issues detected in interactive elements.</div>`;
+            uxImprovementsList.innerHTML = `<div class="empty-state">No accessibility or usability issues detected across interactive controls.</div>`;
         } else {
             uxImprovementsList.innerHTML = data.ux_improvements.map(ux => {
                 return `
@@ -256,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="card-top">
                             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                                 <h3>Target: <code>${escapeHtml(ux.selector)}</code></h3>
-                                ${ux.page_url ? `<span class="route-badge">📍 ${escapeHtml(ux.page_url)}</span>` : ''}
+                                ${ux.page_url ? `<span class="route-badge">${escapeHtml(ux.page_url)}</span>` : ''}
                             </div>
                             <span class="badge badge-warning">${ux.category}</span>
                         </div>
@@ -265,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         ${ux.impact_rationale ? `
                         <div class="impact-box">
-                            <strong>⚠️ User Impact & Rationale:</strong> ${escapeHtml(ux.impact_rationale)}
+                            <strong>User Impact & Rationale:</strong> ${escapeHtml(ux.impact_rationale)}
                         </div>` : ''}
                         <div class="fix-box">
                             <strong>Suggested Remediation:</strong> ${escapeHtml(ux.suggested_fix)}

@@ -3,192 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioGear Direct - Shopping Cart</title>
+    <title>KONTUR Acoustics — Order Review</title>
     <style>
+        :root {
+            --bg: #09090b;
+            --surface: #121215;
+            --surface-elevated: #18181b;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --text-main: #f4f4f5;
+            --text-muted: #71717a;
+            --text-dim: #52525b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
         .navbar {
-            background: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            padding: 1.25rem 2.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .brand {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #38bdf8;
             text-decoration: none;
-        }
-        .nav-links { display: flex; gap: 1rem; align-items: center; }
-        .nav-link {
-            color: #94a3b8;
-            text-decoration: none;
+            color: var(--text-main);
+            font-size: 0.95rem;
             font-weight: 600;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            transition: all 0.2s;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-        .nav-link:hover, .nav-link.active {
-            color: #fff;
-            background: rgba(56, 189, 248, 0.2);
-            border: 1px solid rgba(56, 189, 248, 0.4);
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.4rem 0;
+            transition: color 0.15s ease;
+        }
+        .nav-link:hover { color: var(--text-main); }
+        .nav-link.active {
+            color: var(--text-main);
+            border-bottom: 1px solid var(--text-main);
         }
         .hero {
             text-align: center;
-            padding: 2.5rem 1rem 1.5rem;
-            max-width: 800px;
+            padding: 3.5rem 1.5rem 2rem;
+            max-width: 720px;
             margin: 0 auto;
         }
-        .hero h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #fff; }
         .step-bar {
             display: flex;
             justify-content: center;
-            gap: 1.5rem;
-            margin: 0.75rem 0 2rem;
-            font-size: 0.9rem;
-            font-weight: 600;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
         }
-        .step-item { color: #64748b; }
-        .step-item.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 4px; }
-        .step-item.done { color: #10b981; }
+        .step-item.active { color: var(--text-main); font-weight: 600; }
+        .step-item.done { color: var(--text-muted); }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
         .container {
             width: 100%;
-            max-width: 600px;
-            background: #1e293b;
+            max-width: 580px;
+            background: var(--surface);
             padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            margin: 0 auto 3rem;
-            box-sizing: border-box;
-            border: 1px solid #334155;
+            border-radius: 8px;
+            margin: 0 auto 5rem;
+            border: 1px solid var(--border);
         }
         .cart-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid #334155;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .cart-item-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        .cart-item-qty {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .cart-item-price {
+            font-size: 1.15rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
         }
         .cart-section {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #334155;
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
         }
         .cart-section h4 {
-            margin: 0 0 0.75rem 0;
-            color: #94a3b8;
-            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            font-weight: 600;
         }
         .input-group { display: flex; gap: 0.5rem; }
         input[type="text"] {
             flex: 1;
-            padding: 0.75rem;
+            padding: 0.75rem 0.85rem;
             border-radius: 6px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: #fff;
-            box-sizing: border-box;
-            font-size: 0.95rem;
+            border: 1px solid var(--border);
+            background: var(--surface-elevated);
+            color: var(--text-main);
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
         }
         button, .btn-action {
-            padding: 0.75rem 1.25rem;
-            border: none;
+            padding: 0.75rem 1rem;
             border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            background: #334155;
-            color: #e2e8f0;
-            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            letter-spacing: 0.01em;
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            transition: all 0.15s ease;
+            box-sizing: border-box;
             text-align: center;
             text-decoration: none;
-            display: inline-block;
-            box-sizing: border-box;
         }
-        button:hover, .btn-action:hover { background: #475569; }
+        button:hover, .btn-action:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--border-hover);
+        }
         .btn-checkout {
             display: block;
             width: 100%;
-            background: #0284c7;
-            color: white;
-            padding: 0.9rem;
-            font-size: 1rem;
-            font-weight: 700;
+            background: #ffffff;
+            color: #09090b;
+            border: 1px solid #ffffff;
+            padding: 0.85rem;
+            font-weight: 600;
             margin-top: 2rem;
         }
-        .btn-checkout:hover { background: #0369a1; }
+        .btn-checkout:hover {
+            background: #e4e4e7;
+            border-color: #e4e4e7;
+        }
         .status-msg {
             margin-top: 0.75rem;
-            padding: 0.75rem;
+            padding: 0.65rem 0.85rem;
             border-radius: 6px;
             display: none;
-            font-size: 0.85rem;
+            font-size: 0.825rem;
         }
-        .error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
-        .success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
-        .header-icon { width: 32px; height: 32px; }
+        .error {
+            background: rgba(239, 68, 68, 0.08);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .success {
+            background: rgba(16, 185, 129, 0.08);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .header-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <header class="navbar">
         <a href="/" class="brand">
-            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2338bdf8'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'/></svg>" class="header-icon" alt="">
-            <span>AudioGear Direct</span>
+            <!-- Seeded Accessibility Bug: Missing alt attribute on brand logo -->
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'><rect x='3' y='3' width='18' height='18' rx='2' stroke-width='2'/><circle cx='8.5' cy='8.5' r='1.5' fill='white'/><path d='M21 15l-5-5L5 21' stroke-width='2'/></svg>" class="header-icon">
+            <span>Kontur Acoustics</span>
         </a>
         <nav class="nav-links">
             <a href="/" class="nav-link">1. Catalog</a>
-            <a href="/cart.html" class="nav-link active">2. Shopping Cart (🛒)</a>
-            <a href="/checkout.html" class="nav-link">3. Checkout (💳)</a>
+            <a href="/cart.html" class="nav-link active">2. Cart</a>
+            <a href="/checkout.html" class="nav-link">3. Checkout</a>
         </nav>
     </header>
 
     <div class="hero">
         <div class="step-bar">
-            <span class="step-item done">✓ Step 1: Catalog</span>
-            <span class="step-item active">Step 2: Cart Review</span>
-            <span class="step-item">Step 3: Express Checkout</span>
+            <span class="step-item done">01 / Catalog</span>
+            <span class="step-item active">02 / Review</span>
+            <span class="step-item">03 / Checkout</span>
         </div>
-        <h1>Review Your Shopping Cart</h1>
+        <h1>Order Review</h1>
     </div>
 
     <main class="container">
         <div class="cart-item">
             <div>
-                <strong>Quantum ANC Pro Headphones</strong>
-                <div style="color: #94a3b8; font-size: 0.85rem;" id="cart-item-qty">Quantity: 1</div>
+                <div class="cart-item-title">Kontur-1 Reference Headphones</div>
+                <div class="cart-item-qty" id="cart-item-qty">Quantity: 1</div>
             </div>
-            <div style="font-weight: 700; color: #38bdf8; font-size: 1.15rem;">$199.00</div>
+            <div class="cart-item-price">$199.00</div>
         </div>
 
         <!-- Section 1: Promo Code -->
         <div class="cart-section">
-            <h4>Promotional Discount Code</h4>
+            <h4>Promotional Voucher</h4>
             <div class="input-group">
                 <!-- Seeded Accessibility Bug: Missing label tag on promo-code -->
                 <input type="text" id="promo-code" placeholder="Enter coupon code (e.g. SAVE20)">
-                <button type="button" id="claim-promo-btn">Apply Discount</button>
+                <button type="button" id="claim-promo-btn">Apply Code</button>
             </div>
             <div id="promo-status" class="status-msg"></div>
         </div>
 
         <!-- Section 2: Live Shipping Rates -->
         <div class="cart-section">
-            <h4>Live Shipping Estimates</h4>
-            <button type="button" id="calc-shipping-btn" style="width: 100%;">Calculate Shipping Rates</button>
+            <h4>Freight Calculation</h4>
+            <button type="button" id="calc-shipping-btn" style="width: 100%;">Calculate Carrier Rates</button>
             <div id="shipping-status" class="status-msg"></div>
         </div>
 
@@ -208,13 +263,13 @@
             const statusMsg = document.getElementById('promo-status');
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg';
-            statusMsg.textContent = 'Checking promo code...';
+            statusMsg.textContent = 'Validating code...';
 
             try {
                 const res = await fetch('/api/claim-promo-discount?code=' + encodeURIComponent(promoInput.value));
                 if (!res.ok) {
                     statusMsg.className = 'status-msg error';
-                    statusMsg.textContent = 'Failed to apply promo: HTTP ' + res.status;
+                    statusMsg.textContent = 'Validation error: HTTP ' + res.status + ' service endpoint not found';
                 } else {
                     const data = await res.json();
                     statusMsg.className = 'status-msg success';
@@ -231,13 +286,13 @@
             const statusMsg = document.getElementById('shipping-status');
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg';
-            statusMsg.textContent = 'Fetching carrier rates...';
+            statusMsg.textContent = 'Querying freight API...';
 
             try {
                 const res = await fetch('/api/v1/shipping/rates?tier=standard');
                 if (!res.ok) {
                     statusMsg.className = 'status-msg error';
-                    statusMsg.textContent = 'Failed to calculate rates: HTTP ' + res.status;
+                    statusMsg.textContent = 'Carrier service error: HTTP ' + res.status;
                 } else {
                     statusMsg.className = 'status-msg success';
                     statusMsg.textContent = 'Standard Ground: $9.99 | Express Air: $24.99';
