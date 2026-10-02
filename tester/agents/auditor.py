@@ -120,7 +120,8 @@ def run_auditor_agent(dom_elements: List[Dict[str, Any]]) -> List[UXImprovement]
                     {"role": "user", "content": user_content}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.1
+                temperature=0.1,
+                max_tokens=600
             )
             raw_json = response.choices[0].message.content
         except Exception as api_err:
@@ -131,7 +132,8 @@ def run_auditor_agent(dom_elements: List[Dict[str, Any]]) -> List[UXImprovement]
                         {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
                         {"role": "user", "content": user_content}
                     ],
-                    temperature=0.1
+                    temperature=0.1,
+                    max_tokens=600
                 )
                 raw_json = response.choices[0].message.content
             else:

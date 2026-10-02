@@ -140,7 +140,8 @@ def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
                     {"role": "user", "content": user_content}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.0
+                temperature=0.0,
+                max_tokens=600
             )
             raw_json = response.choices[0].message.content
         except Exception as api_err:
@@ -152,7 +153,8 @@ def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
                         {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
                         {"role": "user", "content": user_content}
                     ],
-                    temperature=0.0
+                    temperature=0.0,
+                    max_tokens=600
                 )
                 raw_json = response.choices[0].message.content
             else:
