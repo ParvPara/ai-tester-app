@@ -118,86 +118,98 @@ def generate_fallback_fuzz(dom_elements: List[Dict[str, Any]]) -> List[FuzzActio
     return actions
 
 
+from tester.config import get_configured_llm_providers, LLM_API_KEY, LLM_PROVIDER, LLM_MODEL
+
 def run_fuzzer_agent(dom_elements: List[Dict[str, Any]]) -> List[FuzzAction]:
     """
     Executes the Adversarial Fuzzer Agent node.
-    Returns targeted boundary test cases.
+    Attempts primary LLM provider (e.g. Groq) and seamlessly fails over to secondary
+    provider (e.g. OpenAI) if rate limits (429) or errors occur before falling back.
     """
-    if not LLM_API_KEY:
+    providers = get_configured_llm_providers()
+    if not providers:
         print("[Agent: Fuzzer] No API key detected. Running deterministic fallback fuzzer.")
         return generate_fallback_fuzz(dom_elements)
 
-    try:
-        print(f"[Agent: Fuzzer] Generating boundary attack vectors via {LLM_PROVIDER.upper()} ({LLM_MODEL})...")
-        client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-        user_content = f"Interactive DOM Elements for boundary testing:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing the 'fuzz_actions' array."
+    user_content = f"Interactive DOM Elements for boundary testing:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing the 'fuzz_actions' array."
 
+    last_err = None
+    for p in providers:
+        p_name = p["name"].upper()
+        p_model = p["model"]
         try:
-            response = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.0,
-                max_tokens=600
-            )
-            raw_json = response.choices[0].message.content
-        except Exception as api_err:
-            if "json_validate_failed" in str(api_err) or "400" in str(api_err):
-                # Fallback retry without strict response_format
+            print(f"[Agent: Fuzzer] Generating boundary attack vectors via {p_name} ({p_model})...")
+            client = OpenAI(api_key=p["api_key"], base_url=p["base_url"])
+
+            try:
                 response = client.chat.completions.create(
-                    model=LLM_MODEL,
+                    model=p_model,
                     messages=[
                         {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
                         {"role": "user", "content": user_content}
                     ],
+                    response_format={"type": "json_object"},
                     temperature=0.0,
                     max_tokens=600
                 )
                 raw_json = response.choices[0].message.content
-            else:
-                raise api_err
+            except Exception as api_err:
+                if "json_validate_failed" in str(api_err) or "400" in str(api_err):
+                    response = client.chat.completions.create(
+                        model=p_model,
+                        messages=[
+                            {"role": "system", "content": FUZZER_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_content}
+                        ],
+                        temperature=0.0,
+                        max_tokens=600
+                    )
+                    raw_json = response.choices[0].message.content
+                else:
+                    raise api_err
 
-        clean_json = raw_json.strip()
-        start_idx = clean_json.find("{")
-        end_idx = clean_json.rfind("}")
-        if start_idx != -1 and end_idx != -1:
-            clean_json = clean_json[start_idx:end_idx + 1]
+            clean_json = raw_json.strip()
+            start_idx = clean_json.find("{")
+            end_idx = clean_json.rfind("}")
+            if start_idx != -1 and end_idx != -1:
+                clean_json = clean_json[start_idx:end_idx + 1]
 
-        parsed = json.loads(clean_json)
+            parsed = json.loads(clean_json)
 
-        # Normalize possible synonym keys
-        if "fuzz_actions" not in parsed:
-            for syn in ["actions", "tests", "test_cases", "boundary_actions"]:
-                if syn in parsed:
-                    parsed["fuzz_actions"] = parsed.pop(syn)
-                    break
+            # Normalize possible synonym keys
+            if "fuzz_actions" not in parsed:
+                for syn in ["actions", "tests", "test_cases", "boundary_actions"]:
+                    if syn in parsed:
+                        parsed["fuzz_actions"] = parsed.pop(syn)
+                        break
 
-        out = FuzzerOutput.model_validate(parsed)
+            out = FuzzerOutput.model_validate(parsed)
 
-        # Ensure all interactive buttons in the DOM have a corresponding test action
-        existing_click_selectors = {a.selector for a in out.fuzz_actions if a.action_type == "click"}
-        for item in dom_elements:
-            if item.get("tag") == "button":
-                btn_id = item.get("id")
-                sel = item.get("selector") or (f"#{btn_id}" if btn_id else "button")
-                if sel not in existing_click_selectors:
-                    btn_text = item.get("text") or sel
-                    out.fuzz_actions.append(FuzzAction(
-                        selector=sel,
-                        action_type="click",
-                        payload="",
-                        rationale=f"Trigger action button '{btn_text}' to test backend API response and client-side stability",
-                        user_scenario=f"A shopper clicks '{btn_text}' expecting an immediate result",
-                        business_impact="If the network endpoint fails or crashes, the customer is stranded and transaction fails"
-                    ))
-                    existing_click_selectors.add(sel)
+            # Ensure all interactive buttons in the DOM have a corresponding test action
+            existing_click_selectors = {a.selector for a in out.fuzz_actions if a.action_type == "click"}
+            for item in dom_elements:
+                if item.get("tag") == "button":
+                    btn_id = item.get("id")
+                    sel = item.get("selector") or (f"#{btn_id}" if btn_id else "button")
+                    if sel not in existing_click_selectors:
+                        btn_text = item.get("text") or sel
+                        out.fuzz_actions.append(FuzzAction(
+                            selector=sel,
+                            action_type="click",
+                            payload="",
+                            rationale=f"Trigger action button '{btn_text}' to test backend API response and client-side stability",
+                            user_scenario=f"A shopper clicks '{btn_text}' expecting an immediate result",
+                            business_impact="If the network endpoint fails or crashes, the customer is stranded and transaction fails"
+                        ))
+                        existing_click_selectors.add(sel)
 
-        # Cap actions to top 4 highest-value actions per route to maintain <25s multi-page execution
-        return out.fuzz_actions[:4]
+            # Cap actions to top 4 highest-value actions per route to maintain <25s multi-page execution
+            return out.fuzz_actions[:4]
 
-    except Exception as err:
-        print(f"[Agent: Fuzzer Warning] Fuzzer agent encountered error ({err}). Using fallback.")
-        return generate_fallback_fuzz(dom_elements)
+        except Exception as err:
+            last_err = err
+            print(f"[Agent: Fuzzer Failover] {p_name} ({p_model}) encountered error: {err}. Trying next provider...")
+            continue
+
+    print(f"[Agent: Fuzzer Warning] All configured LLM providers failed ({last_err}). Using emergency offline fallback.")
+    return generate_fallback_fuzz(dom_elements)

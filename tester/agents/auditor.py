@@ -98,74 +98,87 @@ def generate_fallback_audit(dom_elements: List[Dict[str, Any]]) -> List[UXImprov
     return improvements
 
 
+from tester.config import get_configured_llm_providers, LLM_API_KEY, LLM_PROVIDER, LLM_MODEL
+
 def run_auditor_agent(dom_elements: List[Dict[str, Any]]) -> List[UXImprovement]:
     """
     Executes the WCAG & UX Auditor Agent node.
-    Returns plain-English accessibility and human experience improvements.
+    Attempts primary LLM provider (e.g. Groq) and seamlessly fails over to secondary
+    provider (e.g. OpenAI) if rate limits (429) or errors occur before falling back.
     """
-    if not LLM_API_KEY:
+    providers = get_configured_llm_providers()
+    if not providers:
         print("[Agent: Auditor] No API key detected. Running deterministic fallback auditor.")
         return generate_fallback_audit(dom_elements)
 
-    try:
-        print(f"[Agent: Auditor] Auditing accessibility & UX via {LLM_PROVIDER.upper()} ({LLM_MODEL})...")
-        client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-        user_content = f"Interactive DOM Elements for WCAG & Usability Audit:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing 'ux_improvements'."
+    user_content = f"Interactive DOM Elements for WCAG & Usability Audit:\n{json.dumps(dom_elements, indent=2)}\n\nRespond with a valid JSON object containing 'ux_improvements'."
 
+    last_err = None
+    for p in providers:
+        p_name = p["name"].upper()
+        p_model = p["model"]
         try:
-            response = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.1,
-                max_tokens=600
-            )
-            raw_json = response.choices[0].message.content
-        except Exception as api_err:
-            if "json_validate_failed" in str(api_err) or "400" in str(api_err):
+            print(f"[Agent: Auditor] Auditing accessibility & UX via {p_name} ({p_model})...")
+            client = OpenAI(api_key=p["api_key"], base_url=p["base_url"])
+
+            try:
                 response = client.chat.completions.create(
-                    model=LLM_MODEL,
+                    model=p_model,
                     messages=[
                         {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
                         {"role": "user", "content": user_content}
                     ],
+                    response_format={"type": "json_object"},
                     temperature=0.1,
                     max_tokens=600
                 )
                 raw_json = response.choices[0].message.content
-            else:
-                raise api_err
+            except Exception as api_err:
+                if "json_validate_failed" in str(api_err) or "400" in str(api_err):
+                    response = client.chat.completions.create(
+                        model=p_model,
+                        messages=[
+                            {"role": "system", "content": AUDITOR_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_content}
+                        ],
+                        temperature=0.1,
+                        max_tokens=600
+                    )
+                    raw_json = response.choices[0].message.content
+                else:
+                    raise api_err
 
-        clean_json = raw_json.strip()
-        start_idx = clean_json.find("{")
-        end_idx = clean_json.rfind("}")
-        if start_idx != -1 and end_idx != -1:
-            clean_json = clean_json[start_idx:end_idx + 1]
+            clean_json = raw_json.strip()
+            start_idx = clean_json.find("{")
+            end_idx = clean_json.rfind("}")
+            if start_idx != -1 and end_idx != -1:
+                clean_json = clean_json[start_idx:end_idx + 1]
 
-        parsed = json.loads(clean_json)
+            parsed = json.loads(clean_json)
 
-        # Normalize synonym keys
-        if "ux_improvements" not in parsed:
-            for syn in ["improvements", "findings", "issues", "audit_results", "ux_issues"]:
-                if syn in parsed:
-                    parsed["ux_improvements"] = parsed.pop(syn)
-                    break
+            # Normalize synonym keys
+            if "ux_improvements" not in parsed:
+                for syn in ["improvements", "findings", "issues", "audit_results", "ux_issues"]:
+                    if syn in parsed:
+                        parsed["ux_improvements"] = parsed.pop(syn)
+                        break
 
-        out = AuditorOutput.model_validate(parsed)
+            out = AuditorOutput.model_validate(parsed)
 
-        # Deduplicate by selector to avoid repetitive cards
-        unique_improvements: List[UXImprovement] = []
-        seen = set()
-        for item in out.ux_improvements:
-            if item.selector not in seen:
-                seen.add(item.selector)
-                unique_improvements.append(item)
+            # Deduplicate by selector to avoid repetitive cards
+            unique_improvements: List[UXImprovement] = []
+            seen = set()
+            for item in out.ux_improvements:
+                if item.selector not in seen:
+                    seen.add(item.selector)
+                    unique_improvements.append(item)
 
-        return unique_improvements if unique_improvements else generate_fallback_audit(dom_elements)
+            return unique_improvements if unique_improvements else generate_fallback_audit(dom_elements)
 
-    except Exception as err:
-        print(f"[Agent: Auditor Warning] Auditor agent encountered error ({err}). Using fallback.")
-        return generate_fallback_audit(dom_elements)
+        except Exception as err:
+            last_err = err
+            print(f"[Agent: Auditor Failover] {p_name} ({p_model}) encountered error: {err}. Trying next provider...")
+            continue
+
+    print(f"[Agent: Auditor Warning] All configured LLM providers failed ({last_err}). Using emergency offline fallback.")
+    return generate_fallback_audit(dom_elements)
