@@ -10,14 +10,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resultsSection = document.getElementById('results-section');
     const metricTime = document.getElementById('metric-time');
+    const metricHypotheses = document.getElementById('metric-hypotheses');
+    const metricHypothesesSub = document.getElementById('metric-hypotheses-sub');
     const metricBugs = document.getElementById('metric-bugs');
     const metricUx = document.getElementById('metric-ux');
     const metricElements = document.getElementById('metric-elements');
 
     const countBugs = document.getElementById('count-bugs');
+    const countHypotheses = document.getElementById('count-hypotheses');
     const countUx = document.getElementById('count-ux');
 
     const hardBugsList = document.getElementById('hard-bugs-list');
+    const testHypothesesList = document.getElementById('test-hypotheses-list');
     const uxImprovementsList = document.getElementById('ux-improvements-list');
     const rawJsonOutput = document.getElementById('raw-json-output');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -184,21 +188,99 @@ document.addEventListener('DOMContentLoaded', () => {
         metricUx.textContent = data.ux_improvements.length;
         metricElements.textContent = data.element_count;
 
+        const fuzzActions = data.fuzz_actions || [];
+        if (metricHypotheses) {
+            metricHypotheses.textContent = fuzzActions.length;
+        }
+        if (metricHypothesesSub) {
+            const verifiedCount = fuzzActions.filter(a => a.verified_bug).length;
+            const benignCount = fuzzActions.length - verifiedCount;
+            metricHypothesesSub.textContent = `${verifiedCount} defect${verifiedCount === 1 ? '' : 's'} / ${benignCount} safe`;
+        }
+
+        countBugs.textContent = data.hard_bugs.length;
+        if (countHypotheses) {
+            countHypotheses.textContent = fuzzActions.length;
+        }
+        countUx.textContent = data.ux_improvements.length;
+
         const routeCount = (data.audited_routes && data.audited_routes.length) ? data.audited_routes.length : 1;
         if (routeCount > 1) {
             const sub = metricElements.parentElement.querySelector('.metric-sub');
             if (sub) sub.textContent = `${routeCount} routes swept`;
         }
 
-        countBugs.textContent = data.hard_bugs.length;
-        countUx.textContent = data.ux_improvements.length;
+        // Render Test Hypotheses
+        if (testHypothesesList) {
+            if (fuzzActions.length === 0) {
+                testHypothesesList.innerHTML = `<div class="empty-state">No boundary test hypotheses were generated.</div>`;
+            } else {
+                testHypothesesList.innerHTML = fuzzActions.map((action, idx) => {
+                    const isCrash = !!action.verified_bug;
+                    const badgeClass = isCrash ? 'badge-danger' : 'badge-success';
+                    const badgeText = isCrash ? 'Defect Verified' : 'Handled Safely';
+                    const cardBorderClass = isCrash ? 'failed' : 'passed';
+
+                    return `
+                        <div class="report-card hypothesis ${cardBorderClass}">
+                            <div class="card-top">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <span class="hypothesis-num">#${idx + 1}</span>
+                                    <h3>Target: <code>${escapeHtml(action.selector)}</code></h3>
+                                    ${action.page_url ? `<span class="route-badge">${escapeHtml(action.page_url)}</span>` : ''}
+                                </div>
+                                <span class="badge ${badgeClass}">${badgeText}</span>
+                            </div>
+
+                            <!-- Plain English Test Intent -->
+                            <div class="plain-english-box">
+                                ${action.rationale ? `
+                                <div class="meta-row">
+                                    <span class="tag-label">Test Intent & Boundary Hypothesis</span>
+                                    <p>${escapeHtml(action.rationale)}</p>
+                                </div>` : ''}
+                                ${action.user_scenario ? `
+                                <div class="meta-row">
+                                    <span class="tag-label">User Scenario</span>
+                                    <p>${escapeHtml(action.user_scenario)}</p>
+                                </div>` : ''}
+                                ${action.business_impact ? `
+                                <div class="meta-row impact">
+                                    <span class="tag-label ${isCrash ? 'danger' : ''}">Commercial & Business Risk</span>
+                                    <p>${escapeHtml(action.business_impact)}</p>
+                                </div>` : ''}
+                            </div>
+
+                            <!-- Technical Execution Details -->
+                            <div class="field-row">
+                                <strong>Action:</strong> <code>${escapeHtml(action.action_type)}</code>
+                                ${action.payload !== undefined && action.payload !== null && action.payload !== '' ? `&nbsp;|&nbsp; <strong>Payload:</strong> <code>${escapeHtml(action.payload)}</code>` : ''}
+                            </div>
+
+                            <!-- Intercepted Outcome -->
+                            ${isCrash ? `
+                            <div class="meta-row" style="margin-top: 0.75rem;">
+                                <span class="tag-label danger">Intercepted Runtime Crash</span>
+                                <div class="error-box">${escapeHtml(action.error_signature || 'Unhandled runtime exception intercepted during execution')}</div>
+                            </div>` : `
+                            <div class="benign-box">
+                                ✓ Input evaluated safely without unhandled runtime exceptions or HTTP error codes.
+                            </div>`}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
 
         // Render Hard Bugs
         if (data.hard_bugs.length === 0) {
             hardBugsList.innerHTML = `<div class="empty-state">No runtime defects detected. All boundary actions executed safely without unhandled exceptions.</div>`;
         } else {
             hardBugsList.innerHTML = data.hard_bugs.map((bug) => {
-                const reproHtml = bug.reproduction_steps.map(step => `<li>${step}</li>`).join('');
+                const reproHtml = bug.reproduction_steps.map(step => {
+                    const cleanStep = escapeHtml(step.replace(/^\d+\.\s*/, ''));
+                    return `<li>${cleanStep}</li>`;
+                }).join('');
                 return `
                     <div class="report-card bug">
                         <div class="card-top">

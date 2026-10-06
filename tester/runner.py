@@ -46,14 +46,14 @@ def execute_fuzz_tests(target_url: str, audit: AuditResponse) -> Tuple[List[Hard
         # Execute each fuzz action sequentially
         for idx, action in enumerate(audit.fuzz_actions, start=1):
             telemetry.clear_logs()
-            repro_steps: List[str] = [f"1. Open target URL: {target_url}"]
+            repro_steps: List[str] = [f"Open target URL: {target_url}"]
 
             try:
                 if action.action_type == "fill":
-                    repro_steps.append(f"2. Fill input '{action.selector}' with payload: '{action.payload}'")
+                    repro_steps.append(f"Fill input '{action.selector}' with payload: '{action.payload}'")
                     page.fill(action.selector, action.payload or "", timeout=2000)
                 elif action.action_type == "click":
-                    repro_steps.append(f"2. Click element '{action.selector}'")
+                    repro_steps.append(f"Click element '{action.selector}'")
                     page.click(action.selector, timeout=2000)
 
                 # Small delay to allow async handlers/network requests to trigger

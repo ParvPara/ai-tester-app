@@ -10,6 +10,8 @@ class FuzzAction(BaseModel):
     user_scenario: str = Field(default="", description="Plain English scenario of what a real human user would do to trigger this condition.")
     business_impact: str = Field(default="", description="Plain English explanation of how this bug hurts the user experience or business (e.g. checkout freeze, lost sale).")
     page_url: str = Field(default="", description="The specific URL route where this action should be executed.")
+    verified_bug: bool = Field(default=False, description="Whether this hypothesis triggered a verified unhandled exception or network defect.")
+    error_signature: Optional[str] = Field(default=None, description="The runtime error message intercepted if this hypothesis triggered a bug.")
 
 class UXImprovement(BaseModel):
     """Represents a semantic, accessibility, or layout flaw detected by the WCAG & UX Auditor Agent."""

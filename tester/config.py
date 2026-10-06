@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Runtime Configuration
-DEFAULT_TARGET_URL = os.getenv("TARGET_URL", "http://127.0.0.1:8000")
+DEFAULT_TARGET_URL = os.getenv("TARGET_URL", "https://ai-target-app.vercel.app/")
 
 # LLM Provider Configuration (Supports OpenAI and Groq)
 LLM_PROVIDER_PREF = os.getenv("LLM_PROVIDER", "").lower()

@@ -11,6 +11,81 @@ from tester.agents.auditor import run_auditor_agent
 from tester.agents.judge import evaluate_execution_telemetry
 
 
+def _run_fuzz_worker_batch(actions_batch: List[FuzzAction], base_target_url: str) -> List[HardBug]:
+    """Worker thread running a dedicated Playwright instance to evaluate a batch of fuzz actions concurrently."""
+    worker_bugs: List[HardBug] = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=HEADLESS)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        for action in actions_batch:
+            action_target_url = action.page_url or base_target_url
+            telemetry = BrowserTelemetry()
+            page = context.new_page()
+
+            # Attach live event listeners to intercept runtime crashes and 4xx/5xx network errors
+            page.on("pageerror", telemetry._on_page_error)
+            page.on("response", telemetry._on_response)
+
+            repro_steps = [f"Open target URL: {action_target_url}"]
+
+            try:
+                try:
+                    page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
+                    page.wait_for_timeout(60)
+                except Exception:
+                    page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
+
+                if action.action_type == "fill":
+                    repro_steps.append(f"Fill input '{action.selector}' with payload: '{action.payload}'")
+                    page.fill(action.selector, action.payload or "", timeout=800)
+                    page.wait_for_timeout(50)
+
+                    # Trigger client-side validation by submitting the enclosing form if present
+                    submit_btn = (
+                        page.query_selector(f"{action.selector} >> xpath=ancestor::form//button[@type='submit']")
+                        or page.query_selector(f"{action.selector} >> xpath=ancestor::form//button")
+                        or page.query_selector("button[type='submit']")
+                    )
+                    if submit_btn:
+                        repro_steps.append("Submit form to trigger client-side validation and boundary handling")
+                        submit_btn.click(timeout=800)
+                    else:
+                        page.press(action.selector, "Enter")
+
+                elif action.action_type == "click":
+                    repro_steps.append(f"Click element '{action.selector}'")
+                    page.click(action.selector, timeout=800)
+
+                page.wait_for_timeout(100)
+
+            except PlaywrightError:
+                pass
+            finally:
+                # ----------------------------------------------------
+                # NODE 4: Judge Node (Strict verification on each executed action)
+                # ----------------------------------------------------
+                action_bugs = evaluate_execution_telemetry(
+                    action=action,
+                    target_url=action_target_url,
+                    page_errors=telemetry.page_errors,
+                    network_errors=telemetry.network_errors,
+                    repro_steps=repro_steps
+                )
+                if action_bugs:
+                    action.verified_bug = True
+                    action.error_signature = action_bugs[0].error_message
+                else:
+                    action.verified_bug = False
+                    action.error_signature = None
+                worker_bugs.extend(action_bugs)
+                page.close()
+
+        browser.close()
+    return worker_bugs
+
+
 class AppTesterGraph:
     """
     Parallel Multi-Agent State Graph Orchestrator with Multi-Page Route Sweep.
@@ -146,77 +221,27 @@ class AppTesterGraph:
         print(f"  ✓ Auditor Agent produced {len(all_ux_improvements)} plain-English UX/accessibility improvements")
 
         # ----------------------------------------------------
-        # NODE 3 & 4: Playwright Grounding Gate & Judge Node
+        # NODE 3 & 4: Playwright Grounding Gate & Judge Node (Parallel Worker Pool)
         # ----------------------------------------------------
         self._notify("playwright_gate", "running")
-        print(f"\n[Node 3: Playwright Grounding Gate] Executing {len(all_fuzz_actions)} test actions with live error interception...")
+        print(f"\n[Node 3: Playwright Grounding Gate] Executing {len(all_fuzz_actions)} test actions with parallel error interception...")
 
         hard_bugs: List[HardBug] = []
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=HEADLESS)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
+        if all_fuzz_actions:
+            num_workers = min(3, len(all_fuzz_actions))
+            batches = [[] for _ in range(num_workers)]
+            for i, act in enumerate(all_fuzz_actions):
+                batches[i % num_workers].append(act)
+            batches = [b for b in batches if b]
 
-            for idx, action in enumerate(all_fuzz_actions, 1):
-                action_target_url = action.page_url or self.state.target_url
-                telemetry = BrowserTelemetry()
-                page = context.new_page()
-
-                # Attach live event listeners to intercept runtime crashes and 4xx/5xx network errors
-                page.on("pageerror", telemetry._on_page_error)
-                page.on("response", telemetry._on_response)
-
-                repro_steps = [f"1. Open target URL: {action_target_url}"]
-
-                try:
-                    try:
-                        page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="domcontentloaded")
-                        page.wait_for_timeout(150)
-                    except Exception:
-                        page.goto(action_target_url, timeout=BROWSER_TIMEOUT_MS, wait_until="load")
-
-                    if action.action_type == "fill":
-                        repro_steps.append(f"2. Fill input '{action.selector}' with payload: '{action.payload}'")
-                        page.fill(action.selector, action.payload or "", timeout=2000)
-                        page.wait_for_timeout(100)
-
-                        # Trigger client-side validation by submitting the enclosing form if present
-                        submit_btn = (
-                            page.query_selector(f"{action.selector} >> xpath=ancestor::form//button[@type='submit']")
-                            or page.query_selector(f"{action.selector} >> xpath=ancestor::form//button")
-                            or page.query_selector("button[type='submit']")
-                        )
-                        if submit_btn:
-                            repro_steps.append("3. Submit form to trigger client-side validation and boundary handling")
-                            submit_btn.click(timeout=1500)
-                        else:
-                            page.press(action.selector, "Enter")
-
-                    elif action.action_type == "click":
-                        repro_steps.append(f"2. Click element '{action.selector}'")
-                        page.click(action.selector, timeout=2000)
-
-                    page.wait_for_timeout(250)
-
-                except PlaywrightError:
-                    pass
-                finally:
-                    # ----------------------------------------------------
-                    # NODE 4: Judge Node (Strict verification on each executed action)
-                    # ----------------------------------------------------
-                    action_bugs = evaluate_execution_telemetry(
-                        action=action,
-                        target_url=action_target_url,
-                        page_errors=telemetry.page_errors,
-                        network_errors=telemetry.network_errors,
-                        repro_steps=repro_steps
-                    )
-                    hard_bugs.extend(action_bugs)
-                    page.close()
-
-            browser.close()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(batches)) as executor:
+                futures = [
+                    executor.submit(_run_fuzz_worker_batch, batch, self.state.target_url)
+                    for batch in batches
+                ]
+                for fut in futures:
+                    hard_bugs.extend(fut.result())
 
         self._notify("playwright_gate", "completed", {"executed_count": len(all_fuzz_actions)})
         self._notify("judge_node", "completed", {"verified_hard_bugs": len(hard_bugs)})

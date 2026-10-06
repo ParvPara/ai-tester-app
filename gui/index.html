@@ -50,7 +50,7 @@
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                             </svg>
                         </span>
-                        <input type="text" id="target-url-input" placeholder="e.g. http://127.0.0.1:8000 or https://example.com" value="http://127.0.0.1:8000" required spellcheck="false">
+                        <input type="text" id="target-url-input" placeholder="e.g. https://ai-target-app.vercel.app/ or http://127.0.0.1:8000" value="https://ai-target-app.vercel.app/" required spellcheck="false">
                         <button type="submit" id="start-audit-btn" class="btn-primary">
                             <span class="btn-text">Execute Audit</span>
                         </button>
@@ -60,7 +60,8 @@
                 <!-- Preset Quick Buttons -->
                 <div class="preset-row">
                     <span class="preset-label">Presets:</span>
-                    <button type="button" class="preset-chip active" data-url="http://127.0.0.1:8000">Seeded Target (8000)</button>
+                    <button type="button" class="preset-chip active" data-url="https://ai-target-app.vercel.app/">Vercel Target</button>
+                    <button type="button" class="preset-chip" data-url="http://127.0.0.1:8000">Local Seed (8000)</button>
                     <button type="button" class="preset-chip" data-url="https://example.com">example.com</button>
                     <button type="button" class="preset-chip" data-url="https://news.ycombinator.com">Hacker News</button>
                 </div>
@@ -241,6 +242,11 @@
                         <div class="metric-sub">Parallel multi-agent execution</div>
                     </div>
                     <div class="metric-card">
+                        <div class="metric-title">Test Hypotheses</div>
+                        <div class="metric-value" id="metric-hypotheses">0</div>
+                        <div class="metric-sub" id="metric-hypotheses-sub">LLM boundary actions</div>
+                    </div>
+                    <div class="metric-card">
                         <div class="metric-title">Hard Defects</div>
                         <div class="metric-value metric-danger" id="metric-bugs">0</div>
                         <div class="metric-sub">Verified runtime exceptions</div>
@@ -263,6 +269,9 @@
                         <button class="tab-btn active" data-tab="hard-bugs">
                             Hard Defects <span class="tab-count" id="count-bugs">0</span>
                         </button>
+                        <button class="tab-btn" data-tab="test-hypotheses">
+                            Test Hypotheses <span class="tab-count" id="count-hypotheses">0</span>
+                        </button>
                         <button class="tab-btn" data-tab="ux-improvements">
                             UX & Accessibility <span class="tab-count" id="count-ux">0</span>
                         </button>
@@ -271,9 +280,20 @@
                         </button>
                     </div>
 
-                    <!-- Tab Content: Hard Bugs -->
+                    <!-- Tab Content: Hard Defects -->
                     <div id="tab-hard-bugs" class="tab-pane active">
                         <div id="hard-bugs-list" class="cards-list"></div>
+                    </div>
+
+                    <!-- Tab Content: Test Hypotheses -->
+                    <div id="tab-test-hypotheses" class="tab-pane hidden">
+                        <div class="tab-pane-header">
+                            <p class="tab-pane-intro">
+                                Complete breakdown of adversarial test cases proposed by the LLM vs. browser execution outcome.
+                                Demonstrates the Grounding Gate validating whether edge cases trigger true runtime crashes or are handled safely.
+                            </p>
+                        </div>
+                        <div id="test-hypotheses-list" class="cards-list"></div>
                     </div>
 
                     <!-- Tab Content: UX Improvements -->

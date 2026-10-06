@@ -1,7 +1,10 @@
 import os
+import re
 import time
 from typing import List
 from tester.schema import HardBug, UXImprovement
+
+CLEAN_STEP_RE = re.compile(r"^\d+\.\s*")
 
 def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImprovement], elapsed_time: float, target_url: str):
     """Prints a clean, partitioned dual-bucket summary directly to the terminal."""
@@ -31,8 +34,9 @@ def render_terminal_report(hard_bugs: List[HardBug], ux_improvements: List[UXImp
             print(f"      Action / Vector: {bug.action_type} -> '{bug.payload or ''}'")
             print(f"      Error Details  : {bug.error_message}")
             print("      Reproduction Steps:")
-            for step in bug.reproduction_steps:
-                print(f"        {step}")
+            for s_idx, step in enumerate(bug.reproduction_steps, 1):
+                clean_step = CLEAN_STEP_RE.sub("", step)
+                print(f"        {s_idx}. {clean_step}")
             print()
 
     # BUCKET 2: UX & ACCESSIBILITY IMPROVEMENTS
@@ -62,7 +66,7 @@ def generate_html_report(hard_bugs: List[HardBug], ux_improvements: List[UXImpro
         hard_bugs_html = "<div class='empty-state'>Zero runtime defects detected. All boundary actions executed safely without unhandled exceptions.</div>"
     else:
         for b in hard_bugs:
-            steps_html = "".join([f"<li>{step}</li>" for step in b.reproduction_steps])
+            steps_html = "".join([f"<li>{CLEAN_STEP_RE.sub('', step)}</li>" for step in b.reproduction_steps])
             intent_html = f"<div class='meta-row'><span class='tag-label'>Test Intent</span><p>{b.test_intent}</p></div>" if b.test_intent else ""
             scenario_html = f"<div class='meta-row'><span class='tag-label'>User Scenario</span><p>{b.user_scenario}</p></div>" if b.user_scenario else ""
             impact_html = f"<div class='meta-row impact'><span class='tag-label danger'>Commercial & Business Impact</span><p>{b.business_impact}</p></div>" if b.business_impact else ""
