@@ -1,84 +1,90 @@
-# AI App Tester 🤖
+# AI App Tester
 
-A lightweight, deterministic AI App Tester prototype in Python designed for technical presentations and forward-deployed engineering workflows.
+A deterministic, multi-agent automated web testing and quality engineering framework in Python.
 
-The tool inspects any live web application (or the included seeded demo app), extracts a sanitized, token-efficient representation of interactive DOM elements, uses an LLM with strict structured outputs to generate boundary test cases and UX/accessibility audits, executes the tests deterministically via headless Playwright, and renders an interactive dashboard partitioned into **Hard Bugs vs. UX Improvements**.
+The system inspects any live web application over HTTP (such as the default deployed target or local endpoints), extracts a sanitized, token-efficient DOM representation of interactive controls, and uses specialized LLM agents with structured outputs to generate boundary test cases and accessibility/usability audits. It physically executes the generated boundary actions using headless Chromium workers to intercept runtime errors, network failures, and DOM exceptions, presenting findings in a structured dashboard split into verified hard defects, test hypotheses, and UX improvements.
 
 ---
 
-## 🏗️ Architecture & Core Components
+## Architecture and Core Components
 
 ```text
 ai-app-tester/
 ├── gui/
-│   ├── index.html       # Modern dark mode dashboard with interactive State Graph visualizer
-│   ├── style.css        # Responsive glassmorphism styles, graph node pulses & status cards
-│   └── app.js           # Dynamic graph controller & dual-bucket executive report renderer
-├── server.py            # Local REST API server & static GUI server (127.0.0.1)
+│   ├── index.html       # Web dashboard with state graph visualizer and report panels
+│   ├── style.css        # Minimalist dark interface styling and typography
+│   └── app.js           # Client-side graph controller, API client, and report renderer
+├── server.py            # Local REST API server (POST /api/audit) & static GUI file server
 ├── target-app/
-│   ├── index.html       # Storefront catalog with boundary quantity and accessibility flaws
-│   ├── cart.html        # Shopping cart with promo & shipping rate HTTP 404 endpoints
-│   └── checkout.html    # Express checkout with script injection DOMException & cargo overflow
+│   ├── index.html       # Storefront catalog with boundary quantity handling and accessibility flaws
+│   ├── cart.html        # Shopping cart view with promo code and shipping rate HTTP endpoints
+│   └── checkout.html    # Express checkout view with unsanitized DOM insertion and overflow states
 ├── tester/
 │   ├── __init__.py      # Package initialization
-│   ├── config.py        # Environment settings (Groq LPU / OpenAI / Offline fallback)
-│   ├── schema.py        # Pydantic models (AgentState, FuzzAction, HardBug, UXImprovement)
-│   ├── browser.py       # Playwright telemetry harness & same-origin route discovery (<500 tokens)
-│   ├── graph.py         # Parallel Multi-Agent State Graph Orchestrator (Multi-Route Sweep)
-│   ├── agents/          # Specialized Multi-Agent System Nodes
+│   ├── config.py        # Runtime settings, timeouts, and multi-tier LLM provider configuration
+│   ├── schema.py        # Pydantic data models (AgentState, FuzzAction, HardBug, UXImprovement)
+│   ├── browser.py       # Playwright telemetry harness, DOM extraction, and route discovery
+│   ├── graph.py         # Parallel Multi-Agent State Graph orchestrator with concurrent worker pool
+│   ├── agents/          # Specialized multi-agent system nodes
 │   │   ├── __init__.py
-│   │   ├── fuzzer.py    # Adversarial Fuzzing Agent (boundary & injection attack vectors)
-│   │   ├── auditor.py   # WCAG & Plain-English Usability Auditor Agent
-│   │   └── judge.py     # Deterministic False-Positive Judge Node (0% false positives)
-│   ├── llm.py           # Unified LLM reasoning layer & deterministic fallback engine
-│   ├── runner.py        # Headless Playwright test harness & verification gate
-│   └── reporter.py      # Dual-bucket HTML and terminal reporting layer
-├── main.py              # Unified entry point (Launches Web GUI or CLI graph pipeline)
-├── requirements.txt     # Python dependencies
-└── README.md            # Architecture notes & setup instructions
+│   │   ├── fuzzer.py    # Adversarial Fuzzing Agent (numeric boundaries, injection payloads)
+│   │   ├── auditor.py   # WCAG and plain-English usability auditor agent
+│   │   └── judge.py     # Deterministic False-Positive Judge node (0% false positives)
+│   ├── llm.py           # Unified multi-provider LLM interface with automatic failover
+│   ├── runner.py        # Headless Playwright test harness and verification utilities
+│   └── reporter.py      # Dual-bucket HTML and terminal reporting generators
+├── main.py              # Application entry point (launches Web GUI or CLI audit pipeline)
+├── requirements.txt     # Python package dependencies
+└── README.md            # System documentation and architecture reference
 ```
 
 ---
 
-## ⚡ Key Design Rationale
+## Key Design Rationale
 
-1. **Parallel Multi-Agent State Graph & Black-Box Multi-Route Sweep**:
-   - The tester operates **strictly as a black-box HTTP client**; it never touches or imports the target app's source code.
-   - Starting from any target URL, the engine discovers same-origin navigation routes (e.g. Catalog ➔ Cart ➔ Checkout) directly from the live DOM over HTTP.
+1. **Parallel Multi-Agent State Graph and Multi-Route Sweep**:
+   - The tester operates strictly as a black-box HTTP client. It never imports, inspects, or modifies the target application's source code.
+   - Starting from any target URL, the engine discovers same-origin navigation routes (e.g. Catalog -> Cart -> Checkout) directly from the live DOM over HTTP.
    - Specialized agent nodes run concurrently:
-     - **🌐 DOM Ingestion Node**: Headless Playwright DOM harvest & token pruning (<500 tokens per route).
-     - **⚡ Adversarial Fuzzer Agent**: Specialized in numeric boundaries, SQLi/XSS, and API endpoint attack vectors.
-     - **👁️ WCAG & UX Auditor Agent**: Runs in **parallel** via thread pooling across routes to audit accessibility and human friction concurrently.
-     - **🛡️ Playwright Grounding Gate**: Physically executes fuzz actions in isolated browser contexts, capturing runtime crashes and HTTP failures across routes.
-     - **⚖️ False-Positive Judge Node**: Correlates telemetry against proposed actions, strictly rejecting unverified hypotheses to guarantee **0% false positives**.
-     - **📊 Dual-Bucket Synthesis**: Assembles route-badged reports split into verified Hard Bugs vs. Plain-English UX improvements.
+     - **DOM Ingestion Node**: Headless Chromium DOM harvesting and token pruning (typically under 500 tokens per route).
+     - **Adversarial Fuzzer Agent**: Generates numeric boundary vectors, payload injections, and unexpected control sequences.
+     - **WCAG and UX Auditor Agent**: Runs concurrently via thread pooling across routes to evaluate accessibility, readability, and cognitive friction.
+     - **Playwright Grounding Gate**: Concurrently executes test actions across isolated browser contexts, intercepting runtime exceptions (`pageerror`) and failed HTTP responses (`response`).
+     - **False-Positive Judge Node**: Correlates telemetry against proposed actions, strictly rejecting unverified hypotheses to guarantee zero false positives.
+     - **Dual-Bucket Synthesis Node**: Combines verified runtime defects, test hypotheses evaluated, and plain-English UX improvements into a unified report.
 
-2. **Plain-English Executive Summaries (Non-Engineer Friendly)**:
-   - For every verified Hard Bug, the report produces:
-     - **🎯 Test Intent**: Why this boundary or action was probed in plain English.
-     - **👤 User Scenario**: Realistic customer behavior that triggers the issue (e.g. typos, rushing through checkout).
-     - **📉 Business Impact**: Customer and revenue consequences if left unfixed (e.g. cart abandonment, lost sales).
-   - For UX improvements, jargon like `<label for="">` or `aria-describedby` is replaced with intuitive human explanations of friction and screen-reader accessibility.
+2. **Parallelized Execution Worker Pool**:
+   - Boundary test actions are partitioned across concurrent Chromium worker threads (`ThreadPoolExecutor`).
+   - Rather than executing 10 to 15 browser interactions sequentially (which takes 25-35 seconds), parallel workers run actions simultaneously, reducing browser execution latency to under 4 seconds.
 
-3. **Deterministic Strict Verification Gate (Zero False Positives)**:
-   - An issue is **only** elevated to a **Hard Bug** if Playwright actively intercepts:
-     - An uncaught JavaScript exception (`pageerror` event: `TypeError`, `RangeError`, `DOMException`).
-     - A failed network request with an HTTP status code >= 400 (`response` event: 404, 500).
-   - Filters out 3rd-party ad trackers (`google-analytics`, `facebook.net`, `clarity.ms`) to avoid false alarms.
+3. **Multi-Tier LLM Failover**:
+   - Configurable primary provider (`OpenAI` or `Groq`) with automatic failover:
+     - Tier 1: Primary provider (e.g. OpenAI `gpt-4o-mini` or Groq `openai/gpt-oss-120b`).
+     - Tier 2: Secondary provider fallback if rate limits (HTTP 429) or token quotas are encountered.
+     - Tier 3: Deterministic offline rule engine if no internet connectivity or API keys are available.
 
-4. **Ultra-Fast & Token-Efficient (< 20s Execution, $0 Cost)**:
-   - Uses **Groq LPU** (`openai/gpt-oss-120b`) for ultra-low latency (~1.5s inference) with OpenAI fallback.
-   - Extracts sanitized representations under 500 tokens, running entire multi-agent audits in ~15-18 seconds total.
+4. **Plain-English Executive Summaries**:
+   - For every verified hard defect, the report produces:
+     - **Test Intent**: Plain-English explanation of what boundary condition was probed.
+     - **User Scenario**: Realistic user actions that trigger the condition (e.g. accidental negative quantities or rapid clicks).
+     - **Commercial and Business Impact**: Financial, conversion, or operational consequences if the issue remains unresolved.
+   - For UX improvements, technical specifications are translated into clear, actionable recommendations with suggested remediation code.
 
-5. **Guaranteed Presentation Stability (Offline & Zero-Crash Fallback)**:
-   - Strict loopback binding (`127.0.0.1`) avoids macOS IPv6 resolution timeouts and enterprise Wi-Fi blocks.
-   - 100% deterministic offline fallback rule engine ensures the system never crashes during a live demo even if internet or API keys drop.
+5. **Deterministic Strict Verification Gate (Zero False Positives)**:
+   - An issue is elevated to a **Hard Defect** only if Playwright captures concrete browser telemetry:
+     - An uncaught JavaScript runtime exception (`TypeError`, `RangeError`, `DOMException`, `SyntaxError`).
+     - A network request returning HTTP status >= 400 (e.g. 404, 500).
+   - Third-party analytics and ad-tracker domains (`google-analytics.com`, `clarity.ms`, `facebook.net`) are filtered to prevent external network noise from creating false positives.
+
+6. **Generated Hypotheses vs. Verified Defects Visibility**:
+   - The dashboard displays the full spectrum of generated test hypotheses alongside confirmed defects.
+   - Each generated test case displays its execution verdict: `Defect Verified` (with the intercepted stack trace) or `Handled Safely` (validating that the application handled the boundary condition cleanly).
 
 ---
 
-## 🚀 Setup & Quickstart
+## Setup and Quickstart
 
-### 1. Prerequisites & Virtual Environment
+### 1. Prerequisites and Virtual Environment
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -86,27 +92,46 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-### 2. Configure Environment (Optional)
-If using OpenAI structured outputs, create a `.env` file (or set your environment variable):
+### 2. Configure Environment Variables
+Create a `.env` file in the project root:
 ```bash
-OPENAI_API_KEY="your-api-key-here"
-OPENAI_MODEL="gpt-4o-mini"
-```
-*(If no API key is provided, the tool automatically uses its deterministic rule engine).*
+# Provider Preference: "openai" or "groq"
+LLM_PROVIDER=openai
 
-### 3. Launch the Web GUI Dashboard
-Start the application:
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+
+# Groq Configuration (Optional secondary failover)
+GROQ_API_KEY=your-groq-api-key-here
+GROQ_MODEL=openai/gpt-oss-120b
+
+# Default Target URL (Optional, defaults to deployed Vercel target)
+TARGET_URL=https://ai-target-app.vercel.app/
+```
+*(If no API keys are supplied, the engine automatically uses its deterministic offline rule engine).*
+
+### 3. Launch the Web Dashboard
+Start the application server:
 ```bash
 python main.py
 ```
-This automatically spins up the GUI server at **`http://127.0.0.1:5050`** and opens your default browser.
-- Select the **🎯 Seeded Demo App** preset chip or enter any custom URL.
-- Click **⚡ Run AI Audit** to watch the real-time execution stepper and inspect the live findings.
+This launches the dashboard at `http://127.0.0.1:5050` and opens the browser interface.
+- Target URL defaults to the deployed storefront (`https://ai-target-app.vercel.app/`).
+- Preset buttons allow switching between the live Vercel app, the local seed app (`http://127.0.0.1:8000`), or custom endpoints.
+- Click **Execute Audit** to view real-time state graph progression and inspection results.
 
-### 4. Optional: CLI Mode
-To run audits directly from the command line without the GUI:
+### 4. Command Line Interface (CLI) Mode
+To execute audits directly in the terminal and output an HTML report:
 ```bash
+# Audit the default deployed target
+python main.py --cli --url https://ai-target-app.vercel.app/
+
+# Audit the local test server
 python main.py --cli --url http://127.0.0.1:8000
-# Or against any arbitrary website:
-python main.py --cli --url https://news.ycombinator.com
+
+# Audit any remote HTTP target
+python main.py --cli --url https://example.com
 ```
+
+Reports are automatically generated and saved to `report.html`.
